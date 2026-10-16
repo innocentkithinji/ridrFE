@@ -12,6 +12,7 @@ import { useUnits } from "@/features/catalog/api/units";
 import { useContactGroups } from "@/features/contact-groups/api/get-contact-groups";
 import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
 import {
+  antimeridianProblem,
   draftProblems,
   kindLabels,
   operatorLabels,
@@ -365,7 +366,8 @@ function GeofenceFields({ draft, change, field }: ConditionFieldsProps) {
         label="Geofence"
         area={{ polygon: draft.zone, onChange: (polygon) => change({ zone: polygon }) }}
       />
-      {zone.error && (
+      {/* The map explains an area crossing the 180° meridian itself. */}
+      {zone.error && zone.error !== antimeridianProblem && (
         <p id={`${zone.id}-error`} className="text-destructive text-sm">
           {zone.error}
         </p>

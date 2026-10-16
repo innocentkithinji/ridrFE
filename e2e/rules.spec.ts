@@ -148,3 +148,53 @@ test("deleting says Alerts are kept and returns to the list", async ({ page, req
   await page.goto(`/rules/${ruleId}`);
   await expect(page.getByText("This Rule doesn't exist, or isn't yours to see.")).toBeVisible();
 });
+
+// geofenceMap is the drawing map in the Rule form, once it has drawn.
+async function geofenceMap(page: Page) {
+  const map = page.getByRole("figure", { name: "Geofence" });
+  await expect(map.locator("canvas")).toBeVisible();
+  await expect(map).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
+  return map;
+}
+
+test("an editor draws a geofence on the map and edits it by dragging a corner", async ({ page }) => {
+  const name = unique("depot");
+  await openNewRule(page, name);
+  await page.getByRole("button", { name: "Add Attribute" }).click();
+  await page.getByRole("combobox", { name: "Key 1" }).fill("e2e_rule");
+  await page.getByRole("textbox", { name: "Value 1" }).fill(name.split(" ").at(-1)!);
+  await page.getByRole("radio", { name: "Geofence" }).check();
+  const map = await geofenceMap(page);
+  const canvas = map.locator("canvas");
+
+  await map.getByRole("button", { name: "Draw area" }).click();
+  await canvas.click({ position: { x: 100, y: 100 } });
+  await canvas.click({ position: { x: 300, y: 100 } });
+  await canvas.click({ position: { x: 200, y: 250 } });
+  await map.getByRole("button", { name: "Finish" }).click();
+  await expect(map.getByRole("button", { name: /^Corner \d$/ })).toHaveCount(3);
+
+  // Drag the third corner down; its position changes.
+  await map.getByText("Edit corners as text").click();
+  const corners = map.getByRole("textbox", { name: "Corners" });
+  const before = await corners.inputValue();
+  await map.getByRole("button", { name: "Corner 3" }).dragTo(canvas, { targetPosition: { x: 200, y: 320 } });
+  await expect(corners).not.toHaveValue(before);
+  expect((await corners.inputValue()).split("\n")).toHaveLength(3);
+
+  await page.getByLabel("Fires when an Asset").selectOption({ label: "enters the area" });
+  await page.getByRole("button", { name: "Create Rule" }).click();
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByText("an Asset enters the area (3 corners)")).toBeVisible();
+});
+
+test("a geofence crossing ±180° is refused with an explanation", async ({ page }) => {
+  await openNewRule(page, unique("antimeridian"));
+  await page.getByRole("radio", { name: "Geofence" }).check();
+  const map = await geofenceMap(page);
+  await map.getByText("Edit corners as text").click();
+  await map.getByRole("textbox", { name: "Corners" }).fill("-17, 178\n-18, -178\n-19, 179");
+  await expect(map.getByRole("alert")).toContainText("crosses the 180° meridian");
+  await page.getByRole("button", { name: "Create Rule" }).click();
+  await expect(page).toHaveURL(/\/rules\/new$/);
+});
