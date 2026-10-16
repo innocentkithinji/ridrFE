@@ -1,5 +1,6 @@
-import { BookOpen, KeyRound, ScrollText } from "lucide-react";
+import { BookOpen, Boxes, KeyRound, ScrollText } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
+import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
@@ -15,7 +16,7 @@ export const nav: NavGroup[] = [
   },
   {
     label: "Fleet", // Assets, Unclaimed devices
-    items: [],
+    items: [{ label: "Assets", to: assetsPath, icon: Boxes, permission: assetsPermission }],
   },
   {
     label: "Alerting", // Rules, Silences, Contact groups
