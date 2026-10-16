@@ -10,7 +10,7 @@ import {
   CreateContactGroup,
   EditContactGroup,
 } from "@/features/contact-groups/components/contact-group-editor";
-import { Can, useCan } from "@/lib/me";
+import { Can, useCan, useIsScoped } from "@/lib/me";
 
 // ContactGroupsList shows every Contact group with its Contacts and the
 // Rules that notify it.
@@ -27,6 +27,7 @@ export function ContactGroupsList() {
           <CreateContactGroup />
         </Can>
       </header>
+      <ScopeNote />
       <QueryView
         query={groups}
         what="Contact groups"
@@ -107,4 +108,17 @@ function NotifyingRules({ rules }: { rules: Rule[] }) {
     return <p className="text-muted-foreground text-sm">No Rule notifies this group.</p>;
   }
   return <RuleLinks rules={rules} label="Notified by:" />;
+}
+
+// ScopeNote tells a scoped user why some groups may be missing and why
+// they can't change any.
+function ScopeNote() {
+  if (!useIsScoped()) {
+    return null;
+  }
+  return (
+    <p className="text-muted-foreground text-sm">
+      You see only the Contact groups your Rules notify, and can't change them.
+    </p>
+  );
 }
