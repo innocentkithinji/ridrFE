@@ -14,7 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useCreateAsset, useUpdateAsset } from "@/features/assets/api/change-asset";
-import { useControlledKeys } from "@/features/assets/api/get-controlled-keys";
+import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
 import {
   attributeProblems,
   attributeRowsOf,
