@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "oxlint --deny-warnings",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:worker": "VITE_RIDR_DEV_TOKEN=dev-user-token npm run build && E2E_SERVER=worker playwright test e2e/deploy.spec.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
@@ -43,6 +44,7 @@
     "oxlint": "1.88.0",
     "shadcn": "4.22.0",
     "typescript": "7.0.2",
-    "vite": "8.3.4"
+    "vite": "8.3.4",
+    "wrangler": "4.146.0"
   }
 }

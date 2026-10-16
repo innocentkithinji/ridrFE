@@ -1,0 +1,158 @@
+# Every pull request and push to main type-checks, lints, builds and runs
+# Playwright against the Ridr stack started here; main then deploys to
+# Cloudflare as a Worker with static assets (wrangler.jsonc).
+#
+# @ridr/web is installed from the backend checkout beside this one
+# (ADR 0002), so each job checks out both repos side by side:
+#   $GITHUB_WORKSPACE/RidrFE   this repo
+#   $GITHUB_WORKSPACE/Ridr     innocentkithinji/ridr (private: RIDR_REPO_TOKEN)
+#
+# Actions are pinned by commit; Node comes from .nvmrc and Wrangler from
+# package-lock.json. The README lists the secrets and variables.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: RidrFE
+    # Builds here sign in to the stack below with its dev token, named
+    # explicitly: a production build refuses to fall back to it.
+    env:
+      VITE_RIDR_DEV_TOKEN: dev-user-token
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: RidrFE
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: innocentkithinji/ridr
+          token: ${{ secrets.RIDR_REPO_TOKEN }}
+          path: Ridr
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: RidrFE/.nvmrc
+
+      - name: Build @ridr/web
+        working-directory: Ridr/sdk/web
+        run: npm ci && npm run build
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # The API URL defaults to the stack below, localhost:18095.
+      - name: Build
+        run: npm run build
+
+      - name: Start the Ridr stack with demo data
+        working-directory: Ridr
+        run: |
+          make up
+          timeout 180 sh -c 'until curl -fsS http://localhost:18095/healthz >/dev/null; do sleep 2; done'
+          make demo
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright (dev server)
+        run: npm run test:e2e
+
+      # The production build served by wrangler as Cloudflare serves it,
+      # SPA fallback included, so deep links are proved before deploying.
+      - name: Playwright (built app on wrangler)
+        run: npm run test:e2e:worker
+
+      - name: Stack logs
+        if: failure()
+        working-directory: Ridr
+        run: docker compose logs --no-color --tail 200
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: playwright-results
+          path: RidrFE/test-results/
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Cloudflare
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: RidrFE
+    env:
+      VITE_RIDR_API_URL: ${{ vars.VITE_RIDR_API_URL }}
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: RidrFE
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: innocentkithinji/ridr
+          token: ${{ secrets.RIDR_REPO_TOKEN }}
+          path: Ridr
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: RidrFE/.nvmrc
+
+      # Without these the bundle would point at the local stack and
+      # could not sign in (src/config/env.ts).
+      - name: Check build settings
+        run: |
+          missing=0
+          for name in VITE_RIDR_API_URL VITE_CLERK_PUBLISHABLE_KEY; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "::error::$name is not set; see the README's Deploying section"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Build @ridr/web
+        working-directory: Ridr/sdk/web
+        run: npm ci && npm run build
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
