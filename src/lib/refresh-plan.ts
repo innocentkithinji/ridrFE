@@ -1,6 +1,7 @@
 import type { Query } from "@ridr/web";
 
-// How Explore keeps a Query's answer current, from how Ridr understood it:
+// How Explore and Dashboard Widgets keep a Query's answer current, from
+// how Ridr understood it:
 //   still    its range ends in the past: run once
 //   stream   no rollup, range ends now: a Live query appends new Readings
 //   refresh  a rollup, range ends now: rerun every bucket width

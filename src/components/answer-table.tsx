@@ -3,21 +3,30 @@ import type { Reading, RollupRow, RunQueryResponse } from "@ridr/web";
 import { groupOf } from "@/components/charts/time-series";
 import { withUnit } from "@/lib/units";
 
-// AnswerTable lists any answer: rollup rows by bucket, or Readings by
-// device time. Every value carries its Unit. Long answers show their
-// first rows only; the chart draws them all.
+// AnswerTable lists any Query's answer, for Explore and Dashboard
+// Widgets: rollup rows by bucket, or Readings by device time. Every value
+// carries its Unit. Long answers show their first rows only; the chart
+// draws them all.
 
 const shownRows = 500;
 
-export function AnswerTable({ answer }: { answer: RunQueryResponse }) {
+type AnswerTableProps = {
+  answer: RunQueryResponse;
+  // Names the table for assistive tech.
+  label?: string;
+  // Caps the table's height, as a Widget's cell does; default 32rem.
+  className?: string;
+};
+
+export function AnswerTable({ answer, label = "Query answer", className = "max-h-[32rem]" }: AnswerTableProps) {
   const total = answer.rows.length || answer.readings.length;
   return (
     <div className="flex flex-col gap-2">
-      <div className="max-h-[32rem] overflow-auto rounded-md border">
+      <div className={`${className} overflow-auto rounded-md border`}>
         {answer.rows.length > 0 ? (
-          <RowsTable rows={answer.rows.slice(0, shownRows)} />
+          <RowsTable rows={answer.rows.slice(0, shownRows)} label={label} />
         ) : (
-          <ReadingsTable readings={answer.readings.slice(0, shownRows)} />
+          <ReadingsTable readings={answer.readings.slice(0, shownRows)} label={label} />
         )}
       </div>
       {total > shownRows && (
@@ -32,10 +41,10 @@ export function AnswerTable({ answer }: { answer: RunQueryResponse }) {
 const cell = "px-3 py-1.5";
 const head = `${cell} text-muted-foreground font-normal`;
 
-function RowsTable({ rows }: { rows: RollupRow[] }) {
+function RowsTable({ rows, label }: { rows: RollupRow[]; label: string }) {
   const functions = [...new Set(rows.flatMap((row) => Object.keys(row.values)))];
   return (
-    <table aria-label="Query answer" className="w-full text-left text-sm tabular-nums">
+    <table aria-label={label} className="w-full text-left text-sm tabular-nums">
       <thead className="bg-muted sticky top-0">
         <tr>
           <th className={head}>Bucket start</th>
@@ -64,9 +73,9 @@ function RowsTable({ rows }: { rows: RollupRow[] }) {
   );
 }
 
-function ReadingsTable({ readings }: { readings: Reading[] }) {
+function ReadingsTable({ readings, label }: { readings: Reading[]; label: string }) {
   return (
-    <table aria-label="Query answer" className="w-full text-left text-sm tabular-nums">
+    <table aria-label={label} className="w-full text-left text-sm tabular-nums">
       <thead className="bg-muted sticky top-0">
         <tr>
           <th className={head}>Device time</th>

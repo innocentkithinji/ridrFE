@@ -4,7 +4,7 @@ import { measurementSeries, rollupSeries } from "@/components/charts/time-series
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
 import { TrackMap } from "@/components/map/track-map";
 import { locationTracks } from "@/components/map/tracks";
-import { AnswerTable } from "@/features/explore/components/answer-table";
+import { AnswerTable } from "@/components/answer-table";
 
 // ResultView is one way Explore draws a Query's answer. The switcher
 // offers every view whose `shows` accepts the answer, in this order, and

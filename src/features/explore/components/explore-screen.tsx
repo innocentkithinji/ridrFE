@@ -12,7 +12,7 @@ import { useRunQuery } from "@/features/explore/api/run-query";
 import { useAssets, useMetrics, useUnits } from "@/features/explore/api/vocabulary";
 import { viewsFor } from "@/features/explore/components/result-views";
 import { UnderstoodForm } from "@/features/explore/components/understood-form";
-import { refreshPlan, type RefreshPlan } from "@/features/explore/refresh";
+import { refreshPlan, type RefreshPlan } from "@/lib/refresh-plan";
 import { withUnitStage } from "@/lib/query-text";
 import { isRefusal, isTooCostly, queryProblemOf } from "@/lib/errors";
 import { useCan, useIsScoped } from "@/lib/me";
