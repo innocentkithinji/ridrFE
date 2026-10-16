@@ -1,5 +1,6 @@
 import { Code, ConnectError } from "@connectrpc/connect";
-import { DeviceHealth, QueryService, RegistryService, type Assignment } from "@ridr/web";
+import { QueryService, RegistryService, type Assignment } from "@ridr/web";
+import { HealthBadge } from "@/components/device-health";
 import { withUnit } from "@/lib/units";
 import { Button } from "@/components/ui/button";
 import { useDeviceHealth } from "@/features/assets/api/get-device-health";
@@ -54,27 +55,15 @@ export function CurrentDevices({ assignments, assign, onUnassign }: CurrentDevic
   );
 }
 
-const healthLabel: Record<DeviceHealth, string> = {
-  [DeviceHealth.UNSPECIFIED]: "Unknown",
-  [DeviceHealth.LIVE]: "Live",
-  [DeviceHealth.SILENT]: "Silent",
-  [DeviceHealth.NEVER_SEEN]: "Never seen",
-};
-
 function Health({ deviceId }: { deviceId: string }) {
   const allowed = useCan(RegistryService.method.getDeviceHealth);
   const health = useDeviceHealth(deviceId, { enabled: allowed });
   if (!allowed) return null;
   if (health.isPending) return <Muted>Loading health…</Muted>;
   if (health.error) return <Muted>{messageFor(health.error)}</Muted>;
-  const live = health.data.health === DeviceHealth.LIVE;
   return (
     <span className="inline-flex items-center gap-1.5 text-sm">
-      <span
-        aria-hidden
-        className={live ? "size-2 rounded-full bg-emerald-600" : "size-2 rounded-full bg-amber-500"}
-      />
-      <span>{healthLabel[health.data.health]}</span>
+      <HealthBadge health={health.data.health} />
       {health.data.lastSeen && (
         <Muted>last seen {shownTime(health.data.lastSeen)}</Muted>
       )}
