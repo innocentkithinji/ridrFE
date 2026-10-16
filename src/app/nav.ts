@@ -1,4 +1,5 @@
 import {
+  Bell,
   BookOpen,
   Boxes,
   Cable,
@@ -11,6 +12,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
+import { alertsPath, alertsPermission } from "@/app/routes/alerts";
 import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
 import { explorePath, explorePermission } from "@/app/routes/explore";
@@ -29,7 +31,10 @@ import { unclaimedDevicesPath, unclaimedDevicesPermission } from "@/app/routes/u
 export const nav: NavGroup[] = [
   {
     label: "Monitor", // Home, Alerts, Explore, Dashboards
-    items: [{ label: "Explore", to: explorePath, icon: ChartLine, permission: explorePermission }],
+    items: [
+      { label: "Alerts", to: alertsPath, icon: Bell, permission: alertsPermission },
+      { label: "Explore", to: explorePath, icon: ChartLine, permission: explorePermission },
+    ],
   },
   {
     label: "Fleet", // Assets, Unclaimed devices
