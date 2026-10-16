@@ -22,6 +22,18 @@ export function messageFor(error: ConnectError): string {
   }
 }
 
+// refusalMessage says why Ridr refused a change. A PermissionDenied on
+// a change names what to change (such as a value outside the user's
+// Scope), so the server's own words are shown; anything else reads as
+// messageFor does.
+export function refusalMessage(error: unknown): string {
+  const refusal = ConnectError.from(error);
+  if (refusal.code === Code.PermissionDenied && refusal.rawMessage) {
+    return refusal.rawMessage;
+  }
+  return messageFor(refusal);
+}
+
 // isRefusal tells whether the server refused the caller, as opposed to
 // failing; retrying a refusal with the same access won't help.
 export function isRefusal(error: unknown): boolean {

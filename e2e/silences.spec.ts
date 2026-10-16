@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { signInAs } from "./users";
 
 test("the Alerting nav links to Silences", async ({ page }) => {
   await page.goto("/");
@@ -180,9 +181,8 @@ test("each Silence lists the Alerts it held back", async ({ page, request }) => 
   }
 });
 
-// Only one user exists on the local stack, a whole-Organisation admin, so
-// these tests change that user's real GetMe answer to stand in for a
-// viewer or a scoped editor.
+// changeMe edits the dev user's real GetMe answer, for a case no Role
+// stands for: every Role may list Silences.
 async function changeMe(page: Page, change: (me: Record<string, unknown>) => void) {
   await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
     const response = await route.fetch();
@@ -194,12 +194,8 @@ async function changeMe(page: Page, change: (me: Record<string, unknown>) => voi
 
 test("a viewer sees Silences but neither create nor end", async ({ page }) => {
   const silence = await createSilence(page, `Viewer sees ${Date.now()}`);
-  await changeMe(page, (me) => {
-    me.permissions = (me.permissions as string[]).filter(
-      (p) => p !== "ridr.v1.SilenceService/CreateSilence" && p !== "ridr.v1.SilenceService/EndSilence",
-    );
-  });
-  await page.goto("/silences");
+  await signInAs(page, "viewer");
+  await page.reload();
   await expect(silence).toContainText("Active");
   await expect(page.getByRole("button", { name: "Create Silence" })).toHaveCount(0);
   await expect(silence.getByRole("button", { name: "End early" })).toHaveCount(0);
@@ -219,18 +215,11 @@ test("without the list Permission there is no link and no access", async ({ page
   await expect(page.getByRole("alert")).toContainText("No access");
 });
 
-// The stack has no scoped user yet (docs/backend-requests.md), so Ridr's
-// out-of-Scope refusal is played back for the create call.
+// The scoped dev user is an editor who sees fleet=hsl only (users.ts).
 test("a scoped editor starts from their Scope and sees an out-of-Scope refusal", async ({
   page,
 }) => {
-  await changeMe(page, (me) => {
-    me.scope = { conditions: [{ key: "fleet", values: ["hsl"] }] };
-  });
-  const refusal = "selector must pin fleet to a value in your scope";
-  await page.route("**/ridr.v1.SilenceService/CreateSilence", (route) =>
-    route.fulfill({ status: 403, json: { code: "permission_denied", message: refusal } }),
-  );
+  await signInAs(page, "scoped");
   await page.goto("/silences");
   await expect(page.getByText("You see and create Silences within your Scope only.")).toBeVisible();
   await page.getByRole("button", { name: "Create Silence" }).click();
@@ -241,5 +230,5 @@ test("a scoped editor starts from their Scope and sees an out-of-Scope refusal",
   await form.getByRole("combobox", { name: "Value 1" }).selectOption("fintraffic");
   await form.getByLabel("Ends").fill(localInput(hoursFromNow(1)));
   await form.getByRole("button", { name: "Create" }).click();
-  await expect(form.getByRole("alert")).toHaveText(refusal);
+  await expect(form.getByRole("alert")).toHaveText("silence reaches outside your scope");
 });

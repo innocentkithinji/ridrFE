@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAssets } from "@/features/assets/api/get-assets";
 import { useEndSilence } from "@/features/silences/api/change-silence";
 import { useHeldBackAlerts } from "@/features/silences/api/get-silences";
-import { refusalMessage } from "@/features/silences/refusal";
+import { refusalMessage } from "@/lib/errors";
 import { holdsEvery } from "@/lib/attributes";
 import { Can } from "@/lib/me";
 

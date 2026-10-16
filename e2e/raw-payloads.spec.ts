@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { signInAs, signInAsAdmin } from "./users";
 
 // Raw payloads on a Connector's page. The demo's Connectors keep
 // receiving payloads; tests that need problems or plain text make their
@@ -139,19 +140,15 @@ test("Newest N asks for that many, 100 by default", async ({ page, request }) =>
   await expect(section.getByRole("option")).toHaveText(["10", "50", "100", "500", "1000"]);
 });
 
-test("hidden from users without ListRawPayloads, and on retired Adapters", async ({
+test("hidden from non-admins, and on retired Adapters", async ({
   page,
   request,
 }) => {
   const hook = await webhook(request);
   await hook.post('{"n":1}');
 
-  await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
-    const response = await route.fetch();
-    const me = await response.json();
-    me.permissions = me.permissions.filter((p: string) => !p.endsWith("/ListRawPayloads"));
-    await route.fulfill({ response, json: me });
-  });
+  // Raw payloads are for whole-Organisation admins only.
+  await signInAs(page, "editor");
   let listed = false;
   page.on("request", (r) => {
     if (r.url().endsWith("/ListRawPayloads")) listed = true;
@@ -162,7 +159,7 @@ test("hidden from users without ListRawPayloads, and on retired Adapters", async
   await expect(rawPayloads(page)).toHaveCount(0);
   expect(listed).toBe(false);
 
-  await page.unroute("**/ridr.v1.AccessService/GetMe");
+  await signInAsAdmin(page);
   await call(request, "AdapterService/RetireAdapter", { adapterId: hook.adapter.id });
   await page.reload();
   await expect(page.getByRole("heading", { name: hook.adapter.name })).toBeVisible();

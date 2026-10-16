@@ -56,6 +56,12 @@ dev token.
 Run `npx playwright install chromium` once. Tests start their own dev
 server on `PORT` (default 5173) or reuse one already there. They cover
 the dev-token Session only; Clerk sign-in is checked by hand (below).
+Global setup has the dev admin make the stack's extra dev users
+members (a viewer, an editor, and an editor scoped to `fleet=hsl`;
+see `e2e/users.ts`); a test signs in as one with
+`test.use({ user: "viewer" })` or `signInAs(page, "viewer")`, which
+swaps the token on the page's calls to Ridr, so the app itself has no
+way to pick a user. `e2e/roles.spec.ts` checks what each sees.
 
 ## Checking Clerk sign-in by hand
 

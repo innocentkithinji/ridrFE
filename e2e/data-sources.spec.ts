@@ -1,4 +1,5 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext } from "@playwright/test";
+import { signInAs, type UserName } from "./users";
 
 // Each test registers its own Adapters, with unique names, through the
 // API or the screen, so the tests re-run cleanly against the demo data.
@@ -24,26 +25,6 @@ type Registered = { adapter: { id: string }; ingestKey: { plaintext: string } };
 async function register(request: APIRequestContext, name: string) {
   return call<Registered>(request, "RegisterAdapter", { name });
 }
-
-// withoutPermissions removes Permissions from the real GetMe answer, to
-// stand in for a viewer, editor or scoped admin: the local stack has only
-// one user, a whole-Organisation admin.
-async function withoutPermissions(page: Page, drop: (p: string) => boolean) {
-  await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
-    const response = await route.fetch();
-    const me = await response.json();
-    me.permissions = me.permissions.filter((p: string) => !drop(p));
-    await route.fulfill({ response, json: me });
-  });
-}
-
-const adminOnly = (p: string) =>
-  /AdapterService\/(RegisterAdapter|RetireAdapter|CreateIngestKey|ListIngestKeys|RevokeIngestKey|CorrectMeasurements)$/.test(
-    p,
-  ) ||
-  /ConnectorService\/(SetMapping|PreviewMapping|ListRawPayloads|ReprocessRawPayloads|SetRawPayloadRetention)$/.test(
-    p,
-  );
 
 test("lists every Adapter oldest first, retired ones marked, with the Agent guide linked", async ({
   page,
@@ -198,26 +179,28 @@ test("retiring asks first, can't be undone, and leaves the Adapter read-only", a
   await expect(page.getByRole("row").filter({ hasText: name })).toContainText("Retired");
 });
 
-test("viewers, editors and scoped admins get a read-only screen", async ({ page, request }) => {
-  const name = unique("readonly");
-  await register(request, name);
-  await withoutPermissions(page, adminOnly);
+for (const user of ["viewer", "editor", "scoped"] satisfies UserName[]) {
+  test(`a ${user} gets a read-only screen`, async ({ page, request }) => {
+    const name = unique("readonly");
+    await register(request, name);
+    await signInAs(page, user);
 
-  await page.goto("/settings/data-sources");
-  await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add a data source" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Agent guide" })).toBeVisible();
+    await page.goto("/settings/data-sources");
+    await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Add a data source" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Agent guide" })).toBeVisible();
 
-  await page.getByRole("link", { name }).click();
-  await expect(page.getByRole("heading", { name })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Manifests" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Ingest keys" })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Retire" })).toHaveCount(0);
-  await expect(page.getByRole("textbox")).toHaveCount(0);
+    await page.getByRole("link", { name }).click();
+    await expect(page.getByRole("heading", { name })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Manifests" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Ingest keys" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Retire" })).toHaveCount(0);
+    await expect(page.getByRole("textbox")).toHaveCount(0);
 
-  await page.goto("/settings/data-sources/new");
-  await expect(page.getByRole("alert")).toContainText("No access");
-});
+    await page.goto("/settings/data-sources/new");
+    await expect(page.getByRole("alert")).toContainText("No access");
+  });
+}
 
 test("with no Adapters, says so and offers to add one", async ({ page }) => {
   await page.route("**/ridr.v1.AdapterService/ListAdapters", (route) =>

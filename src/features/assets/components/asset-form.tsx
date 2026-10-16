@@ -22,7 +22,7 @@ import {
   hasAttributeProblems,
   type AttributeRow,
 } from "@/lib/attributes";
-import { messageFor } from "@/lib/errors";
+import { refusalMessage } from "@/lib/errors";
 
 type AssetFormSheetProps = {
   // The Asset to edit; none to create one.
@@ -124,7 +124,7 @@ function AssetForm({ asset, onDone }: AssetFormProps) {
       />
       {error && !nameTaken && (
         <p role="alert" className="text-destructive text-sm">
-          {messageFor(error)}
+          {refusalMessage(error)}
         </p>
       )}
       <SheetFooter className="mt-auto px-0">

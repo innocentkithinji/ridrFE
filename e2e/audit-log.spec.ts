@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import { signInAs } from "./users";
 
 // Each test makes its own audited changes through the API, by inviting
 // and un-inviting a user with a unique email, then reads them back in
@@ -82,18 +83,8 @@ test("Older reaches entries before the oldest shown", async ({ page, request }) 
   await expect(rows).toContainText("member.invited");
 });
 
-// Only one user exists on the local stack, a whole-Organisation admin, so
-// this test removes the Permission from that user's real GetMe answer to
-// stand in for a scoped admin, editor or viewer.
-test("hidden from anyone without the Permission", async ({ page }) => {
-  await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
-    const response = await route.fetch();
-    const me = await response.json();
-    me.permissions = me.permissions.filter(
-      (p: string) => p !== "ridr.v1.AuditService/ListAuditEntries",
-    );
-    await route.fulfill({ response, json: me });
-  });
+test("hidden from an editor, who lacks the Permission", async ({ page }) => {
+  await signInAs(page, "editor");
 
   await page.goto("/");
   await expect(page.getByRole("button", { name: "User menu" })).toBeVisible();

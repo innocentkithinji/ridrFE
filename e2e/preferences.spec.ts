@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { adminToken, api, signInAs, users } from "./users";
 
 // Unit preferences (/settings/preferences), kept by Ridr's
 // PreferenceService, against the demo data: the demo simulator keeps
@@ -10,9 +11,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 // run one at a time because they share that user, each starting with no
 // preferences.
 
-const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
-const adminToken = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
-const viewerToken = "dev-viewer-token";
+const viewerToken = users.viewer.token;
 
 const fridgeQuery =
   'measurements | where asset == "Demo medicine fridge 1" and metric == temperature | range last 15m';
@@ -26,24 +25,14 @@ async function call(request: APIRequestContext, path: string, data: object, toke
   });
 }
 
-// The viewer joins the dev Organisation on its first call after being
-// invited; an invitation it already has is fine.
-test.beforeAll(async ({ request }) => {
-  await call(request, "AccessService/InviteUser", { email: "viewer@localhost", role: "ROLE_VIEWER" }, adminToken);
-  const me = await call(request, "AccessService/GetMe", {}, viewerToken);
-  expect(me.ok(), await me.text()).toBe(true);
-});
-
 test.beforeEach(async ({ page, request }) => {
   const listed = await call(request, "PreferenceService/ListUnitPreferences", {}, viewerToken);
   const { unitPreferences = [] } = (await listed.json()) as { unitPreferences?: { quantityKind: string }[] };
   for (const { quantityKind } of unitPreferences) {
     await call(request, "PreferenceService/ClearUnitPreference", { quantityKind }, viewerToken);
   }
-  // Every call to Ridr goes as the viewer.
-  await page.route(`${api}/**`, (route) =>
-    route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${viewerToken}` } }),
-  );
+  // Every call to Ridr goes as the viewer, made a member in global setup.
+  await signInAs(page, "viewer");
 });
 
 function kindRow(page: Page, kind: string) {

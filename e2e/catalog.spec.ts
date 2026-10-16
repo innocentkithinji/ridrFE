@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import { signInAs } from "./users";
 
 const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
 const devToken = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
@@ -100,17 +101,8 @@ test("an admin reviews an unreviewed Metric by choosing its Quantity kind", asyn
   await expect(row).not.toContainText("Needs review");
 });
 
-test("someone who can't define Metrics sees the Catalog read-only", async ({ page }) => {
-  // The dev user is an admin; take DefineMetric out of their real GetMe
-  // answer to stand in for a non-admin.
-  await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
-    const response = await route.fetch();
-    const me = await response.json();
-    me.permissions = me.permissions.filter(
-      (permission: string) => permission !== "ridr.v1.CatalogService/DefineMetric",
-    );
-    await route.fulfill({ response, json: me });
-  });
+test("an editor, who can't define Metrics, sees the Catalog read-only", async ({ page }) => {
+  await signInAs(page, "editor");
   await page.goto("/settings/catalog");
 
   await expect(page.getByRole("table", { name: "Metrics" })).toContainText("speed");
