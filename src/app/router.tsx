@@ -7,6 +7,7 @@ import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
 import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
 import { HomeRoute } from "@/app/routes/home";
 import { NotFoundRoute } from "@/app/routes/not-found";
+import { TeamRoute, teamPath } from "@/app/routes/team";
 import {
   TestOnlyAgentGuideRoute,
   testOnlyAgentGuidePath,
@@ -22,6 +23,7 @@ const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
   { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
+  { path: teamPath, element: <TeamRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
   ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),
   { path: "*", element: <NotFoundRoute /> },

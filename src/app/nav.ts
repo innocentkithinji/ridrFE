@@ -1,8 +1,9 @@
-import { BookOpen, KeyRound, ScrollText } from "lucide-react";
+import { BookOpen, KeyRound, ScrollText, Users } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
+import { teamPath, teamPermission } from "@/app/routes/team";
 import { testOnlyNav } from "@/app/routes/test-only";
 
 // The sidebar. Each feature adds its link to its group here, with the
@@ -31,6 +32,7 @@ export const nav: NavGroup[] = [
         icon: KeyRound,
         permission: controlledKeysPermission,
       },
+      { label: "Team", to: teamPath, icon: Users, permission: teamPermission },
       { label: "Audit log", to: auditLogPath, icon: ScrollText, permission: auditLogPermission },
       ...testOnlyNav,
     ],
