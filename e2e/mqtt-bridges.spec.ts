@@ -85,3 +85,32 @@ test("create an MQTT bridge and watch it report it can't reach a private broker"
   await expect(row).toContainText("MQTT bridge");
   await expect(row).toContainText("Disconnected");
 });
+
+test("refused broker URLs and topic filters show Ridr's reason beside the field", async ({
+  page,
+}) => {
+  const name = unique("refused");
+  created.push(name);
+  await page.goto("/settings/data-sources/new");
+  await page.getByRole("radio", { name: /MQTT bridge/ }).check();
+  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByLabel("Topic filter").fill("e2e/#");
+
+  const brokerUrl = page.getByLabel("Broker URL");
+  for (const [url, reason] of [
+    ["http://broker.example.com:1883", "scheme must be one of"],
+    ["mqtt://broker.example.com:1883/feed", "only ws and wss broker URLs have a path"],
+    ["mqtt://user:pass@broker.example.com:1883", "not the URL"],
+  ]) {
+    await brokerUrl.fill(url);
+    await page.getByRole("button", { name: "Create bridge" }).click();
+    await expect(brokerUrl).toHaveAccessibleDescription(new RegExp(reason));
+  }
+
+  await brokerUrl.fill("mqtt://broker.example.com:1883");
+  await page.getByLabel("Topic filter").fill("e2e/#/late");
+  await page.getByRole("button", { name: "Create bridge" }).click();
+  await expect(page.getByLabel("Topic filter")).toHaveAccessibleDescription(/misplaces a wildcard/);
+  await expect(brokerUrl).not.toHaveAttribute("aria-invalid");
+  await expect(page.getByRole("alert")).toHaveCount(1);
+});

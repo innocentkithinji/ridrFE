@@ -9,7 +9,7 @@ import {
   topicFilterHint,
   type BridgeError,
 } from "@/features/data-sources/bridge-errors";
-import { Field } from "@/features/data-sources/components/section";
+import { Field, fieldErrorId } from "@/features/data-sources/components/section";
 import { adapterPath } from "@/features/data-sources/paths";
 
 // CreateMqttBridgeForm creates a bridge that subscribes to a broker
@@ -25,6 +25,9 @@ export function CreateMqttBridgeForm() {
   const [topicFilter, setTopicFilter] = useState("");
   const [error, setError] = useState<BridgeError | null>(null);
   const errorFor = (field: BridgeError["field"]) => (error?.field === field ? error.message : null);
+  // Marks a control invalid and described by its error, while it has one.
+  const invalid = (field: BridgeError["field"], id: string) =>
+    error?.field === field ? { "aria-invalid": true, "aria-describedby": fieldErrorId(id) } : {};
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -49,6 +52,7 @@ export function CreateMqttBridgeForm() {
       <Field label="Name" htmlFor="bridge-name" error={errorFor("name")}>
         <Input
           id="bridge-name"
+          {...invalid("name", "bridge-name")}
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -63,6 +67,7 @@ export function CreateMqttBridgeForm() {
       >
         <Input
           id="bridge-broker-url"
+          {...invalid("brokerUrl", "bridge-broker-url")}
           required
           value={brokerUrl}
           onChange={(e) => setBrokerUrl(e.target.value)}
@@ -101,6 +106,7 @@ export function CreateMqttBridgeForm() {
       >
         <Input
           id="bridge-topic-filter"
+          {...invalid("topicFilter", "bridge-topic-filter")}
           required
           value={topicFilter}
           onChange={(e) => setTopicFilter(e.target.value)}
