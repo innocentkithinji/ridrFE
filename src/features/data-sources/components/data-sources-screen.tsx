@@ -8,6 +8,7 @@ import { DataCredit } from "@/components/data-credit";
 import { useAdapters } from "@/features/data-sources/api/get-adapters";
 import { useMqttBridges } from "@/features/data-sources/api/get-mqtt-bridges";
 import { BridgeStateBadge } from "@/features/data-sources/components/bridge-status";
+import { RetentionSection } from "@/features/data-sources/components/retention-section";
 import { RetiredBadge, When } from "@/features/data-sources/components/format";
 import { adapterPath, agentGuidePath, newDataSourcePath } from "@/features/data-sources/paths";
 import { Can } from "@/lib/me";
@@ -43,6 +44,7 @@ export function DataSourcesScreen() {
       >
         {(data) => <AdaptersTable adapters={oldestFirst(data.adapters)} bridges={bridges} />}
       </QueryView>
+      <RetentionSection />
       <DataCredit bridges={bridges} />
     </section>
   );

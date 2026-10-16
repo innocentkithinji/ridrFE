@@ -4,11 +4,13 @@ import { Link } from "react-router";
 import { ErrorState, Loading, NotFound } from "@/components/states";
 import { useAdapter } from "@/features/data-sources/api/get-adapters";
 import { RetiredBadge } from "@/features/data-sources/components/format";
+import { CorrectionsSection } from "@/features/data-sources/components/corrections-section";
 import { IngestKeysSection } from "@/features/data-sources/components/ingest-keys-section";
 import { ManifestsSection } from "@/features/data-sources/components/manifests-section";
 import { MappingSection } from "@/features/data-sources/components/mapping-section";
 import { MqttBridgeSection } from "@/features/data-sources/components/mqtt-bridge-section";
 import { RawPayloadsSection } from "@/features/data-sources/components/raw-payloads-section";
+import { ReprocessingSection } from "@/features/data-sources/components/reprocessing-section";
 import { RetireSection } from "@/features/data-sources/components/retire-section";
 import { dataSourcesPath } from "@/features/data-sources/paths";
 
@@ -25,6 +27,8 @@ const sections: ComponentType<AdapterSectionProps>[] = [
   ManifestsSection,
   MappingSection,
   RawPayloadsSection,
+  ReprocessingSection,
+  CorrectionsSection,
   RetireSection,
 ];
 

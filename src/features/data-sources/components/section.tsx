@@ -2,6 +2,8 @@ import { useId, type ReactNode } from "react";
 
 type SectionProps = {
   title: string;
+  // The section's anchor on the page, for links such as #reprocessing.
+  id?: string;
   // Buttons beside the title.
   actions?: ReactNode;
   children: ReactNode;
@@ -9,10 +11,10 @@ type SectionProps = {
 
 // Section is one titled part of the Adapter page, a landmark named by
 // its title.
-export function Section({ title, actions, children }: SectionProps) {
+export function Section({ title, id: anchor, actions, children }: SectionProps) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="space-y-3 rounded-xl border p-4">
+    <section id={anchor} aria-labelledby={id} className="space-y-3 rounded-xl border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id={id} className="text-lg font-semibold">
           {title}
