@@ -58,12 +58,19 @@ export function PermissionDenied({ what }: { what: string }) {
   );
 }
 
+type NotFoundProps = {
+  what: string;
+  // The sentence under the title, as the feature page words it.
+  message?: string;
+  children?: ReactNode;
+};
+
 // NotFound is a detail screen's state when the record is gone or outside
 // the user's Scope; the two look the same on purpose.
-export function NotFound({ what, children }: { what: string; children?: ReactNode }) {
+export function NotFound({ what, message, children }: NotFoundProps) {
   return (
     <StateFrame icon={<SearchX className="size-8" aria-hidden />} title={`${what} not found`}>
-      <p>It doesn't exist or isn't yours to see.</p>
+      <p>{message ?? "It doesn't exist or isn't yours to see."}</p>
       {children}
     </StateFrame>
   );
