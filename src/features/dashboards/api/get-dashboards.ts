@@ -12,3 +12,8 @@ export function useDashboards() {
 export function useDashboard(dashboardId: string, version = 0) {
   return useQuery(DashboardService.method.getDashboard, { dashboardId, version });
 }
+
+// useDashboardVersions lists every version of a Dashboard, newest first.
+export function useDashboardVersions(dashboardId: string, options: { enabled?: boolean } = {}) {
+  return useQuery(DashboardService.method.listDashboardVersions, { dashboardId }, options);
+}

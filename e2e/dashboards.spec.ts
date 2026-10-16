@@ -192,3 +192,147 @@ test("a shared Dashboard shows each viewer their own Units, without changing the
     await call(request, "PreferenceService/ClearUnitPreference", { quantityKind: "temperature" }, editorToken);
   }
 });
+
+// dashboardAt makes a Dashboard through the API, owned by the dev admin,
+// with one table Widget per title.
+async function dashboardAt(request: APIRequestContext, name: string, titles: string[]) {
+  const { dashboard } = await call(
+    request,
+    "DashboardService/CreateDashboard",
+    { name, widgets: titles.map((title) => tableWidget(title)) },
+    adminToken,
+  );
+  return dashboard as { id: string; version: number };
+}
+
+function tableWidget(title: string) {
+  return {
+    title,
+    visualization: "table",
+    query: { text: `${fridge} | range last 15m` },
+    layout: { x: 0, y: 0, width: 6, height: 4 },
+  };
+}
+
+test("a stale save shows the conflict, keeps the edit, and can save on top", async ({ browser, request }) => {
+  const name = unique("Conflict");
+  const { id } = await dashboardAt(request, name, ["First"]);
+
+  const mine = await (await browser.newContext()).newPage();
+  const theirs = await (await browser.newContext()).newPage();
+  for (const page of [mine, theirs]) {
+    await page.goto(`/dashboards/${id}`);
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+  }
+
+  await theirs.getByRole("textbox", { name: "Name" }).fill(`${name} theirs`);
+  await theirs.getByRole("button", { name: "Save" }).click();
+  await expect(theirs.getByText(/version 2,/)).toBeVisible();
+
+  await mine.getByRole("textbox", { name: "Name" }).fill(`${name} mine`);
+  await mine.getByRole("button", { name: "Save" }).click();
+  const conflict = mine.getByRole("alert").filter({ hasText: "Someone saved a newer version" });
+  await expect(conflict).toBeVisible();
+  await expect(mine.getByRole("textbox", { name: "Name" })).toHaveValue(`${name} mine`);
+
+  await conflict.getByRole("button", { name: "Save on top" }).click();
+  await expect(mine.getByRole("heading", { name: `${name} mine`, level: 1 })).toBeVisible();
+  await expect(mine.getByText(/version 3,/)).toBeVisible();
+});
+
+test("after a conflict, reloading drops the edit and shows the newer version", async ({ page, request }) => {
+  const name = unique("Reload conflict");
+  const { id } = await dashboardAt(request, name, ["First"]);
+  await page.goto(`/dashboards/${id}`);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("textbox", { name: "Name" }).fill(`${name} mine`);
+
+  await call(
+    request,
+    "DashboardService/SaveDashboard",
+    { dashboardId: id, baseVersion: 1, name: `${name} theirs`, widgets: [tableWidget("First")] },
+    adminToken,
+  );
+
+  await page.getByRole("button", { name: "Save" }).click();
+  const conflict = page.getByRole("alert").filter({ hasText: "Someone saved a newer version" });
+  await conflict.getByRole("button", { name: "Reload" }).click();
+  await expect(page.getByRole("heading", { name: `${name} theirs`, level: 1 })).toBeVisible();
+  await expect(page.getByText(/version 2,/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+});
+
+test("version history opens an earlier version read-only, and an editor restores it", async ({ page, request }) => {
+  const name = unique("Versions");
+  const { id } = await dashboardAt(request, name, ["Old widget"]);
+  await call(
+    request,
+    "DashboardService/SaveDashboard",
+    { dashboardId: id, baseVersion: 1, name: `${name} v2`, widgets: [tableWidget("New widget")] },
+    adminToken,
+  );
+
+  await page.goto(`/dashboards/${id}`);
+  await page.getByRole("button", { name: "Version history" }).click();
+  const history = page.getByRole("dialog", { name: "Version history" });
+  await expect(history.getByRole("listitem")).toHaveCount(2);
+  await history.getByRole("link", { name: /Version 1/ }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/dashboards/${id}\\?version=1$`));
+  await expect(page.getByText("Version 1 of 2")).toBeVisible();
+  await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+  await expect(widget(page, "Old widget")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Restore" }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboards/${id}$`));
+  await expect(page.getByText(/version 3,/)).toBeVisible();
+  await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+  await expect(widget(page, "Old widget")).toBeVisible();
+});
+
+test("the owner shares a Dashboard and makes it private again; others see no Share", async ({ page, request }) => {
+  const name = unique("Sharing");
+  const { id } = await dashboardAt(request, name, ["First"]);
+
+  await page.goto(`/dashboards/${id}`);
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(page.getByText(/^Shared with the Organisation/)).toBeVisible();
+  await page.getByRole("button", { name: "Make private" }).click();
+  await expect(page.getByText(/^Private/)).toBeVisible();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(page.getByText(/^Shared with the Organisation/)).toBeVisible();
+
+  // The dev editor sees the shared Dashboard but may not share it.
+  await request.post(`${api}/ridr.v1.AccessService/InviteUser`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+    data: { email: "editor@localhost", role: "ROLE_EDITOR" },
+  });
+  await call(request, "AccessService/GetMe", {}, editorToken);
+  const editor = await (await page.context().browser()!.newContext()).newPage();
+  await editor.route(`${api}/**`, (route) =>
+    route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${editorToken}` } }),
+  );
+  await editor.goto(`/dashboards/${id}`);
+  await expect(editor.getByRole("heading", { name, level: 1 })).toBeVisible();
+  await expect(editor.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+  await expect(editor.getByRole("button", { name: "Share", exact: true })).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "Make private" })).toHaveCount(0);
+});
+
+test("an editor deletes a Dashboard after confirming, and it is gone", async ({ page, request }) => {
+  const name = unique("Delete me");
+  const { id } = await dashboardAt(request, name, ["First"]);
+
+  await page.goto(`/dashboards/${id}`);
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  const confirm = page.getByRole("alertdialog", { name: "Delete this Dashboard?" });
+  await confirm.getByRole("button", { name: "Delete" }).click();
+
+  await expect(page).toHaveURL(/\/dashboards$/);
+  await expect(page.getByRole("heading", { name: "Dashboards", level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name })).toHaveCount(0);
+
+  await page.goto(`/dashboards/${id}`);
+  await expect(page.getByText("This Dashboard doesn't exist, or isn't yours to see.")).toBeVisible();
+});

@@ -1,5 +1,5 @@
 import { DashboardService } from "@ridr/web";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { RequirePermission } from "@/components/require-permission";
 import { DashboardScreen } from "@/features/dashboards/components/dashboard-screen";
 import { DashboardsScreen } from "@/features/dashboards/components/dashboards-screen";
@@ -21,9 +21,11 @@ export function DashboardsRoute() {
 
 export function DashboardRoute() {
   const { dashboardId = "" } = useParams();
+  // ?version=N opens an earlier version read-only; anything else, the latest.
+  const version = Number.parseInt(useSearchParams()[0].get("version") ?? "", 10);
   return (
     <RequirePermission permission={permissionOf(DashboardService.method.getDashboard)} what="Dashboards">
-      <DashboardScreen key={dashboardId} dashboardId={dashboardId} />
+      <DashboardScreen key={dashboardId} dashboardId={dashboardId} version={version > 0 ? version : 0} />
     </RequirePermission>
   );
 }
