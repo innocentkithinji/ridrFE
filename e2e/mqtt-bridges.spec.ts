@@ -150,3 +150,25 @@ test("edit a bridge, keeping, removing and replacing its password", async ({ pag
   await expect(bridge).toContainText("Password set");
   await expect(bridge.getByRole("button", { name: "Save" })).toHaveCount(0);
 });
+
+test("deleting a bridge asks first, says Readings stay, and retires its Adapter", async ({
+  page,
+  request,
+}) => {
+  const name = unique("delete");
+  created.push(name);
+  const adapterId = await createBridge(request, name);
+
+  await page.goto(`/settings/data-sources/${adapterId}`);
+  const bridge = page.getByRole("region", { name: "MQTT bridge" });
+  await bridge.getByRole("button", { name: "Delete bridge" }).click();
+  const confirm = page.getByRole("alertdialog");
+  await expect(confirm).toContainText("Readings stay");
+  await confirm.getByRole("button", { name: "Delete" }).click();
+
+  await expect(page.getByRole("heading", { name: "Data sources" })).toBeVisible();
+  const row = page.getByRole("row").filter({ hasText: name });
+  await expect(row).toContainText("Retired");
+  await expect(row).not.toContainText("MQTT bridge");
+  expect(await bridgeNamed(request, name)).toBeUndefined();
+});
