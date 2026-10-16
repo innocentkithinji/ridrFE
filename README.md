@@ -146,7 +146,8 @@ src/
     me-provider.tsx     holds screens back until GetMe answers
     routes/             one thin file per route: reads params, renders a feature
   components/
-    charts/             TimeSeriesChart and the series it draws
+    charts/             TimeSeriesChart and the series it draws; the palette
+    map/                TrackMap: MapLibre and OpenFreeMap, loaded lazily; Tracks of Locations, an area
     query-editor/       QueryEditor: CodeMirror 6, query-language highlighting, QueryProblem markers
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types
     states.tsx          Loading, Empty, PermissionDenied, NotFound, ErrorState, QueryView
@@ -178,7 +179,11 @@ wrangler.jsonc          Cloudflare: the build in dist/ as static assets, SPA fal
    same cache entry `RunQuery` would and reports a `status`; pass its
    `query` to `QueryView`. Draw Measurements over time with
    `<TimeSeriesChart series={measurementSeries(data.readings)} label="…" />`
-   from `@/components/charts`. The dev server's `/dev/live-query` charts
+   from `@/components/charts`. Draw Locations with
+   `<TrackMap tracks={locationTracks(data.readings)} label="…" />` from
+   `@/components/map/track-map`: it appends new positions without
+   redrawing, `show="latest"` draws only where each Device is now, and
+   `area` draws a polygon. The dev server's `/dev/live-query` charts
    any Query live.
    Where users write Query text (Explore, Dashboard Widgets), use
    `<QueryEditor>` from `@/components/query-editor/query-editor`: it

@@ -12,6 +12,7 @@ import {
   newDataSourcePath,
 } from "@/app/routes/data-sources";
 import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
+import { AssetDetailRoute, assetDetailPath } from "@/app/routes/asset-detail";
 import { AssetsRoute, assetsPath } from "@/app/routes/assets";
 import { ContactGroupsRoute, contactGroupsPath } from "@/app/routes/contact-groups";
 import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
@@ -39,6 +40,7 @@ const shellRoutes: RouteObject[] = [
   { path: alertDetailPath, element: <AlertDetailRoute /> },
   { path: explorePath, element: <ExploreRoute /> },
   { path: assetsPath, element: <AssetsRoute /> },
+  { path: assetDetailPath, element: <AssetDetailRoute /> },
   { path: unclaimedDevicesPath, element: <UnclaimedDevicesRoute /> },
   { path: contactGroupsPath, element: <ContactGroupsRoute /> },
   { path: catalogPath, element: <CatalogRoute /> },
