@@ -112,19 +112,19 @@ export function ContactGroupForm({ group, save, onSaved, onCancel }: ContactGrou
           const rowId = `${id}-contact-${row.key}`;
           const problem = problems[row.key];
           return (
-            <fieldset key={row.key} className="space-y-2 rounded-lg border p-3">
-              <div className="flex items-center justify-between">
-                <legend className="text-sm font-medium">Contact {index + 1}</legend>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Remove Contact ${index + 1}`}
-                  onClick={() => setRows((current) => current.filter((r) => r.key !== row.key))}
-                >
-                  <Trash2 />
-                </Button>
-              </div>
+            <fieldset key={row.key} className="relative space-y-2 rounded-lg border p-3">
+              <legend className="float-left text-sm font-medium">Contact {index + 1}</legend>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="absolute top-2 right-2"
+                aria-label={`Remove Contact ${index + 1}`}
+                onClick={() => setRows((current) => current.filter((r) => r.key !== row.key))}
+              >
+                <Trash2 />
+              </Button>
+              <div className="clear-both" />
               <div className="grid gap-2 sm:grid-cols-[9rem_1fr]">
                 <Field id={`${rowId}-channel`} label="Channel">
                   <select
