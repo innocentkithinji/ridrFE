@@ -24,9 +24,8 @@ test("the Fleet nav links to Assets", async ({ page }) => {
 
 test("filters Assets by name or Attribute in the browser", async ({ page }) => {
   await page.goto("/assets");
+  // Only Assets in view are drawn, so every check narrows the list first.
   const assets = page.getByRole("list", { name: "Assets" });
-  await expect(assets.getByRole("link", { name: "Demo medicine fridge 1" })).toBeVisible();
-
   await page.getByRole("searchbox", { name: "Filter Assets" }).fill("mode=train");
   await expect(assets.getByRole("link", { name: "Train 27 Helsinki–Rovaniemi" })).toBeVisible();
   await expect(assets.getByRole("link", { name: /Demo medicine fridge/ })).toHaveCount(0);

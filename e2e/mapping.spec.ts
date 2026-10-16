@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { signInAs } from "./users";
 
 // The Mapping editor on a Connector's page. Each test makes its own
 // Webhook connector, with a unique name, and posts known payloads to it.
@@ -164,17 +165,10 @@ test("a pasted sample previews its problem, and a refused save shows its reason 
   await expect(section).toContainText("No Mapping yet");
 });
 
-test("users without SetMapping see the current Mapping, without a form", async ({ page, request }) => {
+test("non-admins see the current Mapping, without a form", async ({ page, request }) => {
   const { adapters } = await call<{ adapters: Adapter[] }>(request, "AdapterService/ListAdapters", {});
   const adapter = adapters.find((a) => a.name === "Demo health devices")!;
-  await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
-    const response = await route.fetch();
-    const me = await response.json();
-    me.permissions = me.permissions.filter(
-      (p: string) => !p.endsWith("/SetMapping") && !p.endsWith("/PreviewMapping"),
-    );
-    await route.fulfill({ response, json: me });
-  });
+  await signInAs(page, "editor");
   await page.goto(`/settings/data-sources/${adapter.id}`);
   const section = mappingSection(page);
   await expect(section.getByRole("definition").first()).toHaveText("device");

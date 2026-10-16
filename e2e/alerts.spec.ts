@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { signInAs } from "./users";
 
 const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
 const token = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
@@ -36,8 +37,7 @@ async function firingAlert(request: APIRequestContext, ruleName = ""): Promise<A
 }
 
 // withoutPermissions takes Permissions out of the dev user's real GetMe
-// answer, standing in for a viewer or a user with fewer rights: the local
-// stack has only one user, a whole-Organisation admin.
+// answer, for a case no Role stands for: every Role may list Alerts.
 async function withoutPermissions(page: Page, ...methods: string[]) {
   await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
     const response = await route.fetch();
@@ -174,9 +174,9 @@ test("an editor resolves a firing Alert by hand from the inbox", async ({ page, 
   await expect(row.getByRole("button")).toHaveCount(0);
 });
 
-test("without the editor Permissions open Alerts show no actions", async ({ page, request }) => {
+test("a viewer's open Alerts show no actions", async ({ page, request }) => {
   test.setTimeout(cycleMs + 60_000);
-  await withoutPermissions(page, "AlertService/AcknowledgeAlert", "AlertService/ResolveAlert");
+  await signInAs(page, "viewer");
   const alert = await firingAlert(request);
 
   await page.goto(`/alerts/${alert.id}`);

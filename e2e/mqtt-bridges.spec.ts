@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import { signInAs } from "./users";
 
 // MQTT bridges against the local stack. The stack's own broker is
 // reachable inside Docker as mqtt://nats:1883, but at a private address,
@@ -202,14 +203,7 @@ test("viewers, editors and scoped admins see a bridge's settings but can't chang
   const name = unique("readonly");
   created.push(name);
   const adapterId = await createBridge(request, name, "secret");
-  await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
-    const response = await route.fetch();
-    const me = await response.json();
-    me.permissions = me.permissions.filter(
-      (p: string) => !/(Create|Update|Delete)MqttBridge$|RegisterAdapter$|RetireAdapter$/.test(p),
-    );
-    await route.fulfill({ response, json: me });
-  });
+  await signInAs(page, "viewer");
 
   await page.goto(`/settings/data-sources/${adapterId}`);
   const bridge = page.getByRole("region", { name: "MQTT bridge" });

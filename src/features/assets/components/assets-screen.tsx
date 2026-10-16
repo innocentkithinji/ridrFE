@@ -59,6 +59,7 @@ export function AssetsScreen() {
           <AssetFormSheet open={creating} onOpenChange={setCreating} />
         </Can>
       </div>
+      <ScopeNote />
       <QueryView
         query={assets}
         what="Assets"
@@ -119,6 +120,12 @@ function ShownAssets({ assets, filter, sort }: ShownAssetsProps) {
       <AssetsList assets={shown} />
     </>
   );
+}
+
+// ScopeNote tells a scoped user why some Assets may be missing.
+function ScopeNote() {
+  if (!useIsScoped()) return null;
+  return <p className="text-muted-foreground text-sm">You see Assets in your Scope only.</p>;
 }
 
 // NoAssetsYet is the list's empty state: a way to make the first Asset,

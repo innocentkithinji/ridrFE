@@ -11,6 +11,8 @@ const worker = process.env.E2E_SERVER === "worker";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Makes the dev viewer, editor and scoped users members (e2e/users.ts).
+  globalSetup: "./e2e/users.setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

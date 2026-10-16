@@ -16,7 +16,7 @@ import {
 import { useAssets } from "@/features/assets/api/get-assets";
 import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
 import { useCreateSilence } from "@/features/silences/api/change-silence";
-import { refusalMessage } from "@/features/silences/refusal";
+import { refusalMessage } from "@/lib/errors";
 import {
   attributeProblems,
   attributeRowsOf,
