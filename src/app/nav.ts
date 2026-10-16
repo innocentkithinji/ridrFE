@@ -1,4 +1,8 @@
+import { ContactGroupService } from "@ridr/web";
+import { UsersRound } from "lucide-react";
+import { contactGroupsPath } from "@/app/routes/contact-groups";
 import type { NavGroup } from "@/components/layout/nav-types";
+import { permissionOf } from "@/lib/me";
 import { testOnlyNav } from "@/app/routes/test-only";
 
 // The sidebar. Each feature adds its link to its group here, with the
@@ -15,7 +19,14 @@ export const nav: NavGroup[] = [
   },
   {
     label: "Alerting", // Rules, Silences, Contact groups
-    items: [],
+    items: [
+      {
+        label: "Contact groups",
+        to: contactGroupsPath,
+        icon: UsersRound,
+        permission: permissionOf(ContactGroupService.method.listContactGroups),
+      },
+    ],
   },
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
