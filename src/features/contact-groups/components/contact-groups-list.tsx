@@ -1,8 +1,9 @@
-import { ContactGroupService, RuleService, type ContactGroup, type Rule } from "@ridr/web";
+import { Channel, ContactGroupService, RuleService, type ContactGroup, type Rule } from "@ridr/web";
 import { QueryView } from "@/components/states";
 import { useContactGroups } from "@/features/contact-groups/api/get-contact-groups";
 import { useRules } from "@/features/contact-groups/api/get-rules";
 import { DeleteContactGroup } from "@/features/contact-groups/components/delete-contact-group";
+import { RotateWebhookSecret } from "@/features/contact-groups/components/rotate-webhook-secret";
 import { RuleLinks } from "@/features/contact-groups/components/rule-links";
 import { channelLabel } from "@/features/contact-groups/components/channels";
 import {
@@ -82,11 +83,16 @@ function ContactGroupCard({ group, rules }: ContactGroupCardProps) {
       ) : (
         <ul className="space-y-1 text-sm">
           {group.contacts.map((contact) => (
-            <li key={`${contact.channel}:${contact.address}`} className="flex gap-2">
+            <li key={`${contact.channel}:${contact.address}`} className="flex items-center gap-2">
               <span className="text-muted-foreground w-20 shrink-0">
                 {channelLabel(contact.channel)}
               </span>
               <span className="break-all">{contact.address}</span>
+              {contact.channel === Channel.WEBHOOK && (
+                <Can method={ContactGroupService.method.rotateWebhookSecret}>
+                  <RotateWebhookSecret address={contact.address} />
+                </Can>
+              )}
             </li>
           ))}
         </ul>

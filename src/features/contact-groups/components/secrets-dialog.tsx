@@ -27,7 +27,7 @@ export function SecretsDialog({ secrets, onClose }: SecretsDialogProps) {
         <DialogHeader>
           <DialogTitle>Webhook signing secret</DialogTitle>
           <DialogDescription>
-            Copy it now: you won't see this again. Receivers use it to verify notifications the
+            You won't see this again, so copy it now. Receivers use it to verify notifications the
             Standard Webhooks way. A secret belongs to its URL, in every group that uses it.
           </DialogDescription>
         </DialogHeader>

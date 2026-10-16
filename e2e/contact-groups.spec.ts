@@ -126,3 +126,39 @@ test("deleting a group a Rule notifies shows which Rules to change", async ({ pa
   await confirm.getByRole("button", { name: "Cancel" }).click();
   await expect(group).toBeVisible();
 });
+
+test("a new webhook's signing secret is shown once, and rotating issues another", async ({ page }) => {
+  const stamp = Date.now();
+  const name = `Webhooks ${stamp}`;
+  const url = `https://hooks.example.com/ridr-${stamp}`;
+  await page.goto("/settings/contact-groups");
+  await page.getByRole("button", { name: "Create" }).click();
+  const form = page.getByRole("dialog", { name: "New Contact group" });
+  await form.getByLabel("Name").fill(name);
+  await form.getByRole("button", { name: "Add Contact" }).click();
+  await form.getByLabel("Channel").selectOption("Webhook");
+  await form.getByLabel("Address").fill(url);
+  await form.getByRole("button", { name: "Save" }).click();
+
+  const issued = page.getByRole("dialog", { name: "Webhook signing secret" });
+  await expect(issued).toContainText("You won't see this again");
+  const secret = issued.getByLabel(`Signing secret for ${url}`);
+  const first = (await secret.textContent()) ?? "";
+  expect(first).not.toBe("");
+  await issued.getByRole("button", { name: "Done" }).click();
+  await expect(issued).toHaveCount(0);
+
+  const group = page.getByRole("article", { name });
+  await expect(group).toContainText(url);
+  await expect(page.getByText(first)).toHaveCount(0);
+
+  await group.getByRole("button", { name: `Rotate secret for ${url}` }).click();
+  await page.getByRole("alertdialog", { name: "Rotate this webhook's secret?" })
+    .getByRole("button", { name: "Rotate" }).click();
+  await expect(secret).toBeVisible();
+  await expect(secret).not.toHaveText(first);
+  await issued.getByRole("button", { name: "Done" }).click();
+  await page.reload();
+  await expect(page.getByRole("article", { name })).toContainText(url);
+  await expect(page.getByText(first)).toHaveCount(0);
+});

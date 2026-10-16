@@ -30,7 +30,11 @@ export function CreateContactGroup() {
           <Plus /> Create
         </Button>
       }
-      save={async (draft) => (await create.mutateAsync(draft)).contactGroup}
+      save={async (draft) => {
+        const answer = await create.mutateAsync(draft);
+        create.reset(); // drop any signing secret from the mutation's state
+        return answer.contactGroup;
+      }}
     />
   );
 }
@@ -47,9 +51,11 @@ export function EditContactGroup({ group }: { group: ContactGroup }) {
           <Pencil /> Edit
         </Button>
       }
-      save={async (draft) =>
-        (await update.mutateAsync({ contactGroupId: group.id, ...draft })).contactGroup
-      }
+      save={async (draft) => {
+        const answer = await update.mutateAsync({ contactGroupId: group.id, ...draft });
+        update.reset(); // drop any signing secret from the mutation's state
+        return answer.contactGroup;
+      }}
     />
   );
 }
