@@ -3,6 +3,7 @@ import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
 import { AgentGuideRoute } from "@/app/routes/agent-guide";
 import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
+import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
 import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
 import { HomeRoute } from "@/app/routes/home";
 import { NotFoundRoute } from "@/app/routes/not-found";
@@ -19,6 +20,7 @@ import { AppShell } from "@/components/layout/app-shell";
 // (the same one as its nav link in nav.ts).
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
+  { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
   ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),

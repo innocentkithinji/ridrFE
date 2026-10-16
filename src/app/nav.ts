@@ -1,6 +1,7 @@
+import { BookOpen, KeyRound, ScrollText } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
-import { KeyRound, ScrollText } from "lucide-react";
+import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
 import { testOnlyNav } from "@/app/routes/test-only";
 
@@ -23,6 +24,7 @@ export const nav: NavGroup[] = [
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
     items: [
+      { label: "Catalog", to: catalogPath, icon: BookOpen, permission: catalogPermission },
       {
         label: "Controlled keys",
         to: controlledKeysPath,
