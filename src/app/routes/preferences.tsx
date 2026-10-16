@@ -1,13 +1,12 @@
-import { CatalogService } from "@ridr/web";
+import { PreferenceService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
 import { PreferencesScreen } from "@/features/preferences/components/preferences-screen";
 import { permissionOf } from "@/lib/me";
 
 export const preferencesPath = "/settings/preferences";
 
-// Every member may list the Units; the preferences themselves are kept in
-// this browser until Ridr serves PreferenceService (ridr#53).
-export const preferencesPermission = permissionOf(CatalogService.method.listUnits);
+// Every member, scoped or not, keeps their own Unit preferences.
+export const preferencesPermission = permissionOf(PreferenceService.method.listUnitPreferences);
 
 export function PreferencesRoute() {
   return (

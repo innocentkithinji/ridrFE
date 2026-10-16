@@ -1,3 +1,5 @@
+import { createClient, type Transport } from "@connectrpc/connect";
+import { PreferenceService } from "@ridr/web";
 import { hasUnitStage, withUnitStage } from "@/lib/query-text";
 
 // Unit preferences: the Unit a user sees each Quantity kind in, added as
@@ -9,61 +11,35 @@ import { hasUnitStage, withUnitStage } from "@/lib/query-text";
 export type UnitPreference = { quantityKind: string; unit: string };
 
 // UnitPreferenceStore keeps one user's Unit preferences in one
-// Organisation. It is async, like the PreferenceService calls (ridr#53)
-// that will replace the browser store, so swapping it changes no caller.
+// Organisation. Screens reach it only through the hooks in
+// use-unit-preferences, so where preferences live can change here alone.
 export interface UnitPreferenceStore {
   // At most one per Quantity kind; empty when none is chosen.
   list(): Promise<UnitPreference[]>;
-  // Replaces any earlier Unit for the kind.
+  // Replaces any earlier Unit for the kind; the answer gives its code.
   set(quantityKind: string, unit: string): Promise<UnitPreference>;
   // Forgets the kind's Unit; succeeds when there is none.
   clear(quantityKind: string): Promise<void>;
 }
 
-// browserUnitPreferenceStore keeps preferences in browser storage, one
-// entry per user and Organisation. A read that fails, or finds something
-// unreadable, gives no preferences, so values show in Ridr's Units; a
-// write that fails rejects, so the screen can say so.
-export function browserUnitPreferenceStore(
-  owner: { tenantId: string; userId: string },
-  storage: () => Storage = () => localStorage,
-): UnitPreferenceStore {
-  const key = `ridr.unitPreferences.${owner.tenantId}.${owner.userId}`;
-
-  function read(): UnitPreference[] {
-    try {
-      const parsed: unknown = JSON.parse(storage().getItem(key) ?? "[]");
-      return Array.isArray(parsed) ? parsed.filter(isPreference) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function write(preferences: UnitPreference[]) {
-    try {
-      storage().setItem(key, JSON.stringify(preferences));
-    } catch (cause) {
-      throw new Error("This browser wouldn't save your Unit preference.", { cause });
-    }
-  }
-
+// ridrUnitPreferenceStore keeps preferences in Ridr's PreferenceService,
+// so they follow the user to every device and client.
+export function ridrUnitPreferenceStore(transport: Transport): UnitPreferenceStore {
+  const client = createClient(PreferenceService, transport);
   return {
-    list: async () => read(),
+    list: async () =>
+      (await client.listUnitPreferences({})).unitPreferences.map(({ quantityKind, unit }) => ({
+        quantityKind,
+        unit,
+      })),
     set: async (quantityKind, unit) => {
-      const preference = { quantityKind, unit };
-      write([...read().filter((kept) => kept.quantityKind !== quantityKind), preference]);
-      return preference;
+      const { unitPreference } = await client.setUnitPreference({ quantityKind, unit });
+      return { quantityKind, unit: unitPreference?.unit ?? unit };
     },
     clear: async (quantityKind) => {
-      write(read().filter((kept) => kept.quantityKind !== quantityKind));
+      await client.clearUnitPreference({ quantityKind });
     },
   };
-}
-
-function isPreference(value: unknown): value is UnitPreference {
-  if (typeof value !== "object" || value === null) return false;
-  const { quantityKind, unit } = value as Record<string, unknown>;
-  return typeof quantityKind === "string" && typeof unit === "string" && unit !== "";
 }
 
 // withUnitPreference adds a `unit` stage for quantityKind's preferred

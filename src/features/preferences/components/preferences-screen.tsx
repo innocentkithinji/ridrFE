@@ -1,6 +1,8 @@
+import { ConnectError } from "@connectrpc/connect";
 import { useState } from "react";
 import { ErrorState, Loading } from "@/components/states";
 import { unitsByQuantityKind, useUnits, type QuantityKindUnits } from "@/features/catalog/api/units";
+import { messageFor } from "@/lib/errors";
 import { unitLabel } from "@/lib/units";
 import {
   useClearUnitPreference,
@@ -9,8 +11,8 @@ import {
 } from "@/lib/use-unit-preferences";
 
 // PreferencesScreen lets the user choose the Unit they see each Quantity
-// kind in, or go back to the Unit Readings were reported in. Kept in this
-// browser until Ridr keeps preferences (ridr#53).
+// kind in, or go back to the Unit Readings were reported in. Ridr keeps
+// them, so they follow the user to every device.
 export function PreferencesScreen() {
   const units = useUnits();
   const preferences = useUnitPreferences();
@@ -20,13 +22,13 @@ export function PreferencesScreen() {
         <h1 className="text-2xl font-semibold tracking-tight">Preferences</h1>
         <p className="text-muted-foreground">
           The Unit you see each Quantity kind in, wherever the app writes a Query for you.
-          Queries you type keep the Units you write. Kept in this browser.
+          Queries you type keep the Units you write.
         </p>
       </header>
       {units.isPending || preferences.isPending ? (
         <Loading what="your Unit preferences" />
-      ) : units.isError ? (
-        <ErrorState error={units.error} />
+      ) : units.isError || preferences.isError ? (
+        <ErrorState error={units.error ?? preferences.error} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {unitsByQuantityKind(units.data.units)
@@ -97,7 +99,7 @@ function QuantityKindRow({ group, chosen }: QuantityKindRowProps) {
       </div>
       {error && (
         <p role="alert" className="text-destructive mt-2 text-sm">
-          {error.message}
+          {messageFor(ConnectError.from(error))}
         </p>
       )}
     </fieldset>

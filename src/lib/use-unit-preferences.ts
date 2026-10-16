@@ -1,10 +1,10 @@
-import { useQuery as useRpcQuery } from "@connectrpc/connect-query";
+import { useQuery as useRpcQuery, useTransport } from "@connectrpc/connect-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CatalogService } from "@ridr/web";
 import { useCallback, useMemo } from "react";
-import { useCan, useMe } from "@/lib/me";
+import { useCan } from "@/lib/me";
 import {
-  browserUnitPreferenceStore,
+  ridrUnitPreferenceStore,
   withUnitPreference,
   type UnitPreferenceStore,
 } from "@/lib/unit-preferences";
@@ -19,11 +19,12 @@ const preferencesStaleTime = 5 * 60_000;
 // unitPreferencesKey matches the cached list, to refetch it after a change.
 export const unitPreferencesKey = ["unitPreferences"] as const;
 
-// useUnitPreferenceStore is where this user's preferences live. Browser
-// storage today; PreferenceService once Ridr serves it (ridr#53).
+// useUnitPreferenceStore is where this user's preferences live: Ridr,
+// for the signed-in user in the active Organisation. The cache is
+// cleared on an Organisation switch, like every other.
 function useUnitPreferenceStore(): UnitPreferenceStore {
-  const { tenantId, userId } = useMe();
-  return useMemo(() => browserUnitPreferenceStore({ tenantId, userId }), [tenantId, userId]);
+  const transport = useTransport();
+  return useMemo(() => ridrUnitPreferenceStore(transport), [transport]);
 }
 
 // useUnitPreferences lists the user's preferences, one per Quantity kind.
@@ -57,11 +58,14 @@ export function useClearUnitPreference() {
   });
 }
 
-// useWithUnitPreference adds the user's preferred Unit for a Metric's
-// Quantity kind to Query text the app writes for them. Wait for `ready`
-// before running the text, so the Query doesn't run twice. Without the
-// Catalog (or on any failure) the text is left as written: values show
-// in Ridr's Units.
+// useWithUnitPreference adds the user's preferred Unit to Query text the
+// app writes for them: for metric's Quantity kind, or, for text that may
+// return any Metric (no metric given), the one preference the user has.
+// A Query takes one `unit` stage, so text over any Metric from a user
+// with several preferences is left as written. Wait for `ready` before
+// running the text, so the Query doesn't run twice. Without the Catalog
+// or the preferences (or on any failure) the text is left as written:
+// values show in Ridr's Units.
 export function useWithUnitPreference() {
   const canListMetrics = useCan(CatalogService.method.listMetrics);
   const metrics = useRpcQuery(
@@ -74,9 +78,15 @@ export function useWithUnitPreference() {
   const chosen = preferences.data;
 
   const apply = useCallback(
-    (queryText: string, metric: string) => {
-      const kind = kinds?.find((known) => known.name === metric)?.quantityKind ?? "";
-      return withUnitPreference(queryText, kind, chosen ?? []);
+    (queryText: string, metric?: string) => {
+      const preferred = chosen ?? [];
+      const kind =
+        metric === undefined
+          ? preferred.length === 1
+            ? preferred[0].quantityKind
+            : ""
+          : (kinds?.find((known) => known.name === metric)?.quantityKind ?? "");
+      return withUnitPreference(queryText, kind, preferred);
     },
     [kinds, chosen],
   );
