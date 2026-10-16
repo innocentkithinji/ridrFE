@@ -63,3 +63,34 @@ test("a stream that fails to open shows the server's message", async ({ page }) 
   await open(page, "readings | range last 5m");
   await expect(page.getByRole("alert")).toContainText('unknown source "readings"');
 });
+
+test("a reopened stream replaces the cache entry with the fresh result", async ({ page }) => {
+  // The first open answers with a made-up Reading and ends, as a server
+  // restart would; the reopen goes through to Ridr.
+  const stale = {
+    readings: [
+      {
+        deviceId: "stale-device",
+        deviceTime: new Date(Date.now() - 60_000).toISOString(),
+        measurement: { metric: "temperature", value: 99, unit: "Cel" },
+      },
+    ],
+  };
+  let opens = 0;
+  await page.route("**/v1/live-query?**", async (route) => {
+    opens++;
+    if (opens > 1) return route.fallback();
+    await route.fulfill({
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+      body: `event: result\ndata: ${JSON.stringify(stale)}\n\n`,
+    });
+  });
+
+  await open(page, demoQuery);
+  const chart = page.getByRole("figure", { name: "Live query chart" });
+  await expect(chart.getByText("stale-device · temperature").first()).toBeVisible();
+
+  await expect(chart.getByText("fridge-1 · temperature").first()).toBeVisible({ timeout: 10_000 });
+  await expect(chart.getByText("stale-device · temperature")).toHaveCount(0);
+});
