@@ -58,3 +58,8 @@ test("a Session change closes every stream", async ({ page }) => {
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await stream;
 });
+
+test("a stream that fails to open shows the server's message", async ({ page }) => {
+  await open(page, "readings | range last 5m");
+  await expect(page.getByRole("alert")).toContainText('unknown source "readings"');
+});
