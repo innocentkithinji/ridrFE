@@ -24,7 +24,8 @@ export function Section({ title, actions, children }: SectionProps) {
   );
 }
 
-// Field is a labelled form control with its error beside it.
+// Field is a labelled form control with its error beside it. The error's
+// ID is fieldErrorId(htmlFor), for the control's aria-describedby.
 export function Field(props: {
   label: string;
   htmlFor: string;
@@ -40,10 +41,12 @@ export function Field(props: {
       {props.children}
       {props.hint && <p className="text-muted-foreground text-xs">{props.hint}</p>}
       {props.error && (
-        <p role="alert" className="text-destructive text-xs">
+        <p id={fieldErrorId(props.htmlFor)} role="alert" className="text-destructive text-xs">
           {props.error}
         </p>
       )}
     </div>
   );
 }
+
+export const fieldErrorId = (htmlFor: string) => `${htmlFor}-error`;

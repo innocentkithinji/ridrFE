@@ -5,6 +5,7 @@ import { SecretDialog } from "@/components/secret-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AgentGuide } from "@/components/agent-guide/agent-guide";
+import { CreateMqttBridgeForm } from "@/features/data-sources/components/mqtt-bridge-form";
 import { useRegisterAdapter } from "@/features/data-sources/api/register-adapter";
 import {
   HostedMqttConnectorForm,
@@ -38,6 +39,12 @@ const kinds: Kind[] = [
     label: "Hosted MQTT connector",
     description: "Devices publish to Ridr's own MQTT broker; a Mapping turns their payloads into Readings.",
     form: HostedMqttConnectorForm,
+  },
+  {
+    id: "mqtt-bridge",
+    label: "MQTT bridge",
+    description: "Ridr subscribes to a topic on an MQTT broker elsewhere and keeps what arrives.",
+    form: CreateMqttBridgeForm,
   },
 ];
 
