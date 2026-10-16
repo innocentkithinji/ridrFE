@@ -70,3 +70,14 @@ test("removing a key from the Scope leaves the whole Organisation", async ({ pag
   await expect(scope.getByRole("group", { name: "mode" })).toHaveCount(0);
   await expect(scope).toContainText("Whole Organisation");
 });
+
+test("explains what each Role can do without leaving the app", async ({ page }) => {
+  await page.goto("/settings/team");
+  await expect(page.getByRole("link", { name: "What each Role can do" })).toHaveCount(0);
+  await page.getByText("What each Role can do").click();
+  const roles = page.getByRole("region", { name: "What each Role can do" });
+  await expect(roles.getByRole("term")).toHaveText(["Viewer", "Editor", "Admin", "With a Scope"]);
+  await expect(roles.getByRole("definition").nth(0)).toContainText("changes nothing");
+  await expect(roles.getByRole("definition").nth(1)).toContainText("acknowledge and resolve Alerts");
+  await expect(roles.getByRole("definition").nth(2)).toContainText("Audit log");
+});

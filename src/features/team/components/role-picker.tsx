@@ -1,5 +1,5 @@
 import type { Role } from "@ridr/web";
-import { permissionsTableUrl, roleLabel, roles } from "@/features/team/components/describe";
+import { roleLabel, roles } from "@/features/team/components/describe";
 
 type RolePickerProps = {
   value: Role;
@@ -11,12 +11,12 @@ type RolePickerProps = {
   disabled?: boolean;
 };
 
-// RolePicker chooses a Role, with a link to what each Role grants.
+// RolePicker chooses a Role. The Team screen's RolesSummary says what
+// each grants.
 export function RolePicker({ value, onChange, label, hideLabel, disabled }: RolePickerProps) {
   return (
-    <span className="inline-flex items-center gap-2 text-sm">
-      <label className="flex items-center gap-2">
-        <span className={hideLabel ? "sr-only" : undefined}>{label}</span>
+    <label className="flex items-center gap-2 text-sm">
+      <span className={hideLabel ? "sr-only" : undefined}>{label}</span>
         <select
           value={value}
           disabled={disabled}
@@ -30,14 +30,5 @@ export function RolePicker({ value, onChange, label, hideLabel, disabled }: Role
           ))}
         </select>
       </label>
-      <a
-        href={permissionsTableUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="text-muted-foreground text-xs underline"
-      >
-        What each Role can do
-      </a>
-    </span>
   );
 }
