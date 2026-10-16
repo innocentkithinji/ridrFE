@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import { palette } from "@/components/charts/palette";
 import type { TimeSeries } from "@/components/charts/time-series";
 import { useTheme } from "@/lib/theme";
 import { unitLabel, withUnit } from "@/lib/units";
@@ -106,11 +107,6 @@ function LatestTable({ series }: { series: TimeSeries[] }) {
   );
 }
 
-// The reference categorical palette, stepped for each surface.
-const palette = {
-  light: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"],
-  dark: ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"],
-};
 const chrome = {
   light: { axis: "#898781", grid: "#e1e0d9", baseline: "#c3c2b7" },
   dark: { axis: "#898781", grid: "#2c2c2a", baseline: "#383835" },

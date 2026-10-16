@@ -14,6 +14,12 @@ _Avoid_: Panel, card, tile, chart
 How a Widget draws its Query's answer. One of: *line* (Measurements over time), *stat* (one latest or aggregate value), *table*, *map* (Locations) or *events* (a list of Events).
 _Avoid_: Chart type, view, display
 
+### Maps
+
+**Track**:
+Where one Device has been: its Locations in a Query's range, oldest first, the last marked as where it is now. A map draws one Track per Device, since a Location names its Device, not its Asset.
+_Avoid_: Trail, path, route (a Tag in the demo data)
+
 ### People and preferences
 
 **Unit preference**:

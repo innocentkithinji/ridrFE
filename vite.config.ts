@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     },
+    // MapLibre loads lazily; listing it here stops the dev server from
+    // discovering it on first use and reloading the page.
+    optimizeDeps: { include: ["maplibre-gl"] },
     server: { port: Number(process.env.PORT) || 5173, strictPort: true },
     build: {
       // Libraries change less often than the app, so browsers keep them
@@ -26,6 +29,7 @@ export default defineConfig(({ mode }) => {
               { name: "api", test: /node_modules[\\/](@ridr|@bufbuild|@connectrpc|@tanstack)[\\/]/ },
               { name: "ui", test: /node_modules[\\/](radix-ui|@radix-ui|lucide-react)[\\/]/ },
               { name: "charts", test: /node_modules[\\/](uplot)[\\/]/ },
+              { name: "map", test: /node_modules[\\/](maplibre-gl|@maplibre)[\\/]/ },
             ],
           },
         },
