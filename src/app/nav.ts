@@ -1,3 +1,5 @@
+import { BookOpen } from "lucide-react";
+import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import type { NavGroup } from "@/components/layout/nav-types";
 import { testOnlyNav } from "@/app/routes/test-only";
 
@@ -19,6 +21,9 @@ export const nav: NavGroup[] = [
   },
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
-    items: [...testOnlyNav],
+    items: [
+      { label: "Catalog", to: catalogPath, icon: BookOpen, permission: catalogPermission },
+      ...testOnlyNav,
+    ],
   },
 ];
