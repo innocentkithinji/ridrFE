@@ -146,9 +146,14 @@ src/
     me-provider.tsx     holds screens back until GetMe answers
     routes/             one thin file per route: reads params, renders a feature
   components/
+    charts/             TimeSeriesChart and the series it draws
+    query-editor/       QueryEditor: CodeMirror 6, query-language highlighting, QueryProblem markers
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types
     states.tsx          Loading, Empty, PermissionDenied, NotFound, ErrorState, QueryView
     require-permission.tsx  <RequirePermission>: a route's Permission gate
+    secret-dialog.tsx   <SecretDialog>: a secret Ridr shows once (Ingest key, webhook URL…), copied, never cached
+    confirm-dialog.tsx  <ConfirmDialog>: asks before a change that can't be taken back
+    agent-guide/        <AgentGuide>: the public guide, and the filled-in one after an Ingest key is issued
     session-controls.tsx    Organisation switcher and sign-out
     ui/                 shadcn/ui components (add with `npx shadcn add <name>`)
   features/<feature>/
@@ -175,6 +180,10 @@ wrangler.jsonc          Cloudflare: the build in dist/ as static assets, SPA fal
    `<TimeSeriesChart series={measurementSeries(data.readings)} label="…" />`
    from `@/components/charts`. The dev server's `/dev/live-query` charts
    any Query live.
+   Where users write Query text (Explore, Dashboard Widgets), use
+   `<QueryEditor>` from `@/components/query-editor/query-editor`: it
+   highlights the query language and underlines the `QueryProblem`
+   that `queryProblemOf(error)` from `@/lib/errors` reads.
 2. **Screens** in `src/features/<feature>/components/`. Show
    `Loading`, `ErrorState`, `Empty` or `QueryView` from
    `@/components/states`; hide actions the user may not take with

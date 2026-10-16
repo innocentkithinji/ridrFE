@@ -1,4 +1,5 @@
 import { Code, ConnectError } from "@connectrpc/connect";
+import { QueryProblemSchema, type QueryProblem } from "@ridr/web";
 
 // messageFor turns an API error into a sentence for the screen.
 export function messageFor(error: ConnectError): string {
@@ -55,4 +56,20 @@ const wrongRequest = [
 export function retryWontHelp(error: unknown): boolean {
   const code = ConnectError.from(error).code;
   return isRefusal(error) || wrongRequest.includes(code);
+}
+
+// queryProblemOf reads where a Query is wrong from the error RunQuery,
+// ExplainQuery, a Dashboard save or a Live query failed with: the
+// QueryProblem Ridr sends with InvalidArgument, or null.
+export function queryProblemOf(error: unknown): QueryProblem | null {
+  if (!error) return null;
+  const failed = ConnectError.from(error);
+  if (failed.code !== Code.InvalidArgument) return null;
+  return failed.findDetails(QueryProblemSchema)[0] ?? null;
+}
+
+// isTooCostly tells whether Ridr refused to run a Query because of a
+// cost limit; its rawMessage names the limit.
+export function isTooCostly(error: unknown): boolean {
+  return !!error && ConnectError.from(error).code === Code.ResourceExhausted;
 }
