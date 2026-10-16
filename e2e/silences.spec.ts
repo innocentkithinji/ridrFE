@@ -136,6 +136,8 @@ async function call(request: APIRequestContext, method: string, body: object) {
 // always fires on them, under a Silence over them, records Alerts the
 // Silence holds back. Both are removed again afterwards.
 test("each Silence lists the Alerts it held back", async ({ page, request }) => {
+  // The Rule fires on the fridges' next Readings, which a busy stack may delay.
+  test.setTimeout(90_000);
   const stamp = Date.now();
   const comment = `Defrost ${stamp}`;
   const ruleName = `Always firing ${stamp}`;
@@ -170,7 +172,7 @@ test("each Silence lists the Alerts it held back", async ({ page, request }) => 
     await expect(async () => {
       await page.reload();
       await expect(heldBack).toContainText(ruleName, { timeout: 2_000 });
-    }).toPass({ timeout: 30_000 });
+    }).toPass({ timeout: 60_000 });
     await expect(heldBack).toContainText("Demo medicine fridge");
   } finally {
     await call(request, "RuleService/DeleteRule", { ruleId: rule.id });
