@@ -1,7 +1,7 @@
 import { FlaskConical } from "lucide-react";
 import type { NavItem } from "@/components/layout/nav-types";
 import { RequirePermission } from "@/components/require-permission";
-import { AgentGuide } from "@/features/agent-guide/components/agent-guide";
+import { AgentGuide } from "@/components/agent-guide/agent-guide";
 
 // A route gated by a Permission nobody has, so the end-to-end tests can
 // prove a missing Permission hides the link and denies the URL. It

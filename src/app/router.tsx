@@ -3,6 +3,13 @@ import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
 import { AgentGuideRoute } from "@/app/routes/agent-guide";
 import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
+import {
+  AdapterRoute,
+  DataSourcesRoute,
+  dataSourcesPath,
+  NewDataSourceRoute,
+  newDataSourcePath,
+} from "@/app/routes/data-sources";
 import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
 import { AssetsRoute, assetsPath } from "@/app/routes/assets";
 import { ContactGroupsRoute, contactGroupsPath } from "@/app/routes/contact-groups";
@@ -30,6 +37,9 @@ const shellRoutes: RouteObject[] = [
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
   { path: teamPath, element: <TeamRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
+  { path: dataSourcesPath, element: <DataSourcesRoute /> },
+  { path: newDataSourcePath, element: <NewDataSourceRoute /> },
+  { path: `${dataSourcesPath}/:adapterId`, element: <AdapterRoute /> },
   ...(import.meta.env.DEV
     ? [
         { path: testOnlyPath, element: <TestOnlyGatedRoute /> },

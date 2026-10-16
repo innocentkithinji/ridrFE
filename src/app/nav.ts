@@ -1,4 +1,4 @@
-import { BookOpen, Boxes, KeyRound, ScrollText, Users, UsersRound } from "lucide-react";
+import { BookOpen, Boxes, Cable, KeyRound, ScrollText, Users, UsersRound } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
 import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
@@ -6,6 +6,7 @@ import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { contactGroupsPath, contactGroupsPermission } from "@/app/routes/contact-groups";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
 import { teamPath, teamPermission } from "@/app/routes/team";
+import { dataSourcesPath, dataSourcesPermission } from "@/app/routes/data-sources";
 import { testOnlyNav } from "@/app/routes/test-only";
 
 // The sidebar. Each feature adds its link to its group here, with the
@@ -34,6 +35,7 @@ export const nav: NavGroup[] = [
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
     items: [
+      { label: "Data sources", to: dataSourcesPath, icon: Cable, permission: dataSourcesPermission },
       { label: "Catalog", to: catalogPath, icon: BookOpen, permission: catalogPermission },
       {
         label: "Controlled keys",

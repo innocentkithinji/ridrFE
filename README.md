@@ -149,6 +149,9 @@ src/
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types
     states.tsx          Loading, Empty, PermissionDenied, NotFound, ErrorState, QueryView
     require-permission.tsx  <RequirePermission>: a route's Permission gate
+    secret-dialog.tsx   <SecretDialog>: a secret Ridr shows once (Ingest key, webhook URL…), copied, never cached
+    confirm-dialog.tsx  <ConfirmDialog>: asks before a change that can't be taken back
+    agent-guide/        <AgentGuide>: the public guide, and the filled-in one after an Ingest key is issued
     session-controls.tsx    Organisation switcher and sign-out
     ui/                 shadcn/ui components (add with `npx shadcn add <name>`)
   features/<feature>/
