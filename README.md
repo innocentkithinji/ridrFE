@@ -151,6 +151,7 @@ src/
     query-editor/       QueryEditor: CodeMirror 6, query-language highlighting, QueryProblem markers
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types
     states.tsx          Loading, Empty, PermissionDenied, NotFound, ErrorState, QueryView
+    answer-table.tsx    AnswerTable: any Query's answer as a table (Explore, Dashboard Widgets)
     require-permission.tsx  <RequirePermission>: a route's Permission gate
     secret-dialog.tsx   <SecretDialog>: a secret Ridr shows once (Ingest key, webhook URL…), copied, never cached
     confirm-dialog.tsx  <ConfirmDialog>: asks before a change that can't be taken back

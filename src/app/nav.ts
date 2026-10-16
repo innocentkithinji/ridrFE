@@ -7,6 +7,7 @@ import {
   ChartLine,
   CircleDashed,
   KeyRound,
+  LayoutDashboard,
   ScrollText,
   Users,
   UsersRound,
@@ -15,6 +16,7 @@ import type { NavGroup } from "@/components/layout/nav-types";
 import { alertsPath, alertsPermission } from "@/app/routes/alerts";
 import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
+import { dashboardsPath, dashboardsPermission } from "@/app/routes/dashboards";
 import { explorePath, explorePermission } from "@/app/routes/explore";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { contactGroupsPath, contactGroupsPermission } from "@/app/routes/contact-groups";
@@ -34,6 +36,7 @@ export const nav: NavGroup[] = [
     items: [
       { label: "Alerts", to: alertsPath, icon: Bell, permission: alertsPermission },
       { label: "Explore", to: explorePath, icon: ChartLine, permission: explorePermission },
+      { label: "Dashboards", to: dashboardsPath, icon: LayoutDashboard, permission: dashboardsPermission },
     ],
   },
   {

@@ -16,6 +16,7 @@ import { AssetDetailRoute, assetDetailPath } from "@/app/routes/asset-detail";
 import { AssetsRoute, assetsPath } from "@/app/routes/assets";
 import { ContactGroupsRoute, contactGroupsPath } from "@/app/routes/contact-groups";
 import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
+import { DashboardRoute, dashboardPath, DashboardsRoute, dashboardsPath } from "@/app/routes/dashboards";
 import { ExploreRoute, explorePath } from "@/app/routes/explore";
 import { HomeRoute } from "@/app/routes/home";
 import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
@@ -39,6 +40,8 @@ const shellRoutes: RouteObject[] = [
   { path: alertsPath, element: <AlertsRoute /> },
   { path: alertDetailPath, element: <AlertDetailRoute /> },
   { path: explorePath, element: <ExploreRoute /> },
+  { path: dashboardsPath, element: <DashboardsRoute /> },
+  { path: dashboardPath, element: <DashboardRoute /> },
   { path: assetsPath, element: <AssetsRoute /> },
   { path: assetDetailPath, element: <AssetDetailRoute /> },
   { path: unclaimedDevicesPath, element: <UnclaimedDevicesRoute /> },
