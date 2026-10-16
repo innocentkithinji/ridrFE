@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet, RouterProvider, type RouteObject } from "r
 import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
 import { AgentGuideRoute } from "@/app/routes/agent-guide";
+import { AlertDetailRoute, alertDetailPath, AlertsRoute, alertsPath } from "@/app/routes/alerts";
 import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
 import {
   AdapterRoute,
@@ -14,10 +15,12 @@ import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
 import { AssetsRoute, assetsPath } from "@/app/routes/assets";
 import { ContactGroupsRoute, contactGroupsPath } from "@/app/routes/contact-groups";
 import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
+import { ExploreRoute, explorePath } from "@/app/routes/explore";
 import { HomeRoute } from "@/app/routes/home";
 import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
 import { NotFoundRoute } from "@/app/routes/not-found";
 import { TeamRoute, teamPath } from "@/app/routes/team";
+import { UnclaimedDevicesRoute, unclaimedDevicesPath } from "@/app/routes/unclaimed-devices";
 import {
   TestOnlyAgentGuideRoute,
   testOnlyAgentGuidePath,
@@ -31,7 +34,11 @@ import { AppShell } from "@/components/layout/app-shell";
 // (the same one as its nav link in nav.ts).
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
+  { path: alertsPath, element: <AlertsRoute /> },
+  { path: alertDetailPath, element: <AlertDetailRoute /> },
+  { path: explorePath, element: <ExploreRoute /> },
   { path: assetsPath, element: <AssetsRoute /> },
+  { path: unclaimedDevicesPath, element: <UnclaimedDevicesRoute /> },
   { path: contactGroupsPath, element: <ContactGroupsRoute /> },
   { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
