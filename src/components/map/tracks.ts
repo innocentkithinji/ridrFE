@@ -51,3 +51,20 @@ export function positionText({ latitude, longitude }: Pick<GeoPoint, "latitude" 
   const lng = `${Math.abs(longitude).toFixed(4)}° ${longitude < 0 ? "W" : "E"}`;
   return `${lat}, ${lng}`;
 }
+
+// wrapLongitude brings a longitude from any copy of the world into
+// -180 to 180, as maps that pan past the antimeridian give them.
+export function wrapLongitude(longitude: number): number {
+  return ((((longitude + 180) % 360) + 360) % 360) - 180;
+}
+
+// crossesAntimeridian tells whether any side of a polygon, the closing
+// one included, is shorter going across the 180° meridian than along
+// the map: such an area can't be told apart from its outside the other
+// way round the world, so Ridr refuses it.
+export function crossesAntimeridian(polygon: GeoPolygon): boolean {
+  return polygon.some(([longitude], index) => {
+    const next = polygon[(index + 1) % polygon.length][0];
+    return Math.abs(next - longitude) > 180;
+  });
+}
