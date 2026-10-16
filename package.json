@@ -12,10 +12,11 @@
     "typecheck": "tsc -p tsconfig.json",
     "lint": "oxlint --deny-warnings",
     "test:e2e": "playwright test",
-    "test:e2e:worker": "npm run build && E2E_SERVER=worker playwright test e2e/deploy.spec.ts"
+    "test:e2e:worker": "VITE_RIDR_DEV_TOKEN=dev-user-token npm run build && E2E_SERVER=worker playwright test e2e/deploy.spec.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
+    "@clerk/react": "6.17.4",
     "@connectrpc/connect": "2.2.0",
     "@connectrpc/connect-query": "2.3.1",
     "@connectrpc/connect-web": "2.2.0",
