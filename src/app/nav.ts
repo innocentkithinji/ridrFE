@@ -1,9 +1,10 @@
-import { BookOpen, Boxes, KeyRound, ScrollText } from "lucide-react";
+import { BellOff, BookOpen, Boxes, KeyRound, ScrollText } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
 import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
+import { silencesPath, silencesPermission } from "@/app/routes/silences";
 import { testOnlyNav } from "@/app/routes/test-only";
 
 // The sidebar. Each feature adds its link to its group here, with the
@@ -20,7 +21,7 @@ export const nav: NavGroup[] = [
   },
   {
     label: "Alerting", // Rules, Silences, Contact groups
-    items: [],
+    items: [{ label: "Silences", to: silencesPath, icon: BellOff, permission: silencesPermission }],
   },
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
