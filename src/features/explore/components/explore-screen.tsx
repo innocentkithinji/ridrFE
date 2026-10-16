@@ -12,12 +12,14 @@ import { useRunQuery } from "@/features/explore/api/run-query";
 import { useAssets, useMetrics, useUnits } from "@/features/explore/api/vocabulary";
 import { viewsFor } from "@/features/explore/components/result-views";
 import { UnderstoodForm } from "@/features/explore/components/understood-form";
-import { refreshPlan, withUnitStage, type RefreshPlan } from "@/features/explore/refresh";
+import { refreshPlan, type RefreshPlan } from "@/features/explore/refresh";
+import { withUnitStage } from "@/lib/query-text";
 import { isRefusal, isTooCostly, queryProblemOf } from "@/lib/errors";
 import { useCan, useIsScoped } from "@/lib/me";
 import { unitLabel } from "@/lib/units";
 import { LiveStatusBadge } from "@/components/live-status";
 import { useLiveQuery, type LiveStatus } from "@/lib/use-live-query";
+import { useWithUnitPreference } from "@/lib/use-unit-preferences";
 
 // What the editor holds before anything has run.
 export const exampleQuery = `measurements
@@ -31,7 +33,9 @@ export const exampleQuery = `measurements
 export function ExploreScreen() {
   const [params, setParams] = useSearchParams();
   const text = params.get("q") ?? "";
-  const draft = useDraft(text);
+  // The example is the app's Query, so it takes the Unit preference.
+  const example = useWithUnitPreference().apply(exampleQuery, "temperature");
+  const draft = useDraft(text, example);
   const canExplain = useCan(QueryService.method.explainQuery);
   const [liveWanted, setLiveWanted] = useState(true);
 
@@ -130,15 +134,16 @@ export function ExploreScreen() {
 }
 
 // useDraft holds the text being edited, reset to the URL's text whenever
-// that changes (a shared link, Back).
-function useDraft(text: string) {
-  const [draft, setDraft] = useState({ from: text, value: text || exampleQuery });
+// that changes (a shared link, Back). Until the user edits it, an empty
+// URL shows example.
+function useDraft(text: string, example: string) {
+  const [draft, setDraft] = useState<{ from: string; value: string | null }>({ from: text, value: null });
+  const set = (value: string) => setDraft({ from: text, value });
   if (draft.from !== text) {
-    const reset = { from: text, value: text || exampleQuery };
-    setDraft(reset);
-    return { value: reset.value, set: (value: string) => setDraft({ from: text, value }) };
+    setDraft({ from: text, value: null });
+    return { value: text || example, set };
   }
-  return { value: draft.value, set: (value: string) => setDraft({ from: text, value }) };
+  return { value: draft.value ?? (text || example), set };
 }
 
 // useVocabulary gathers the Metric and Asset names the editor completes,

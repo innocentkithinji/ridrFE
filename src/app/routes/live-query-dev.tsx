@@ -1,11 +1,12 @@
 import { useSearchParams } from "react-router";
 import { measurementSeries, pointCount } from "@/components/charts/time-series";
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
-import { PermissionDenied, QueryView } from "@/components/states";
+import { Loading, PermissionDenied, QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LiveStatusBadge } from "@/components/live-status";
 import { useLiveQuery } from "@/lib/use-live-query";
+import { useWithUnitPreference } from "@/lib/use-unit-preferences";
 
 // A developer route that charts any Measurement Query live: the proving
 // ground for useLiveQuery and TimeSeriesChart. Dev server only; a Live
@@ -18,7 +19,10 @@ const defaultQuery =
 
 export function LiveQueryDevRoute() {
   const [params, setParams] = useSearchParams();
-  const text = params.get("text") || defaultQuery;
+  // The default Query is the app's, so it takes the Unit preference;
+  // text from the URL was typed and runs as written.
+  const unitPreference = useWithUnitPreference();
+  const text = params.get("text") || unitPreference.apply(defaultQuery, "temperature");
   return (
     <div className="flex flex-col gap-4 p-4 md:p-6">
       <h1 className="text-xl font-semibold">Live query</h1>
@@ -33,7 +37,7 @@ export function LiveQueryDevRoute() {
         <Input name="text" aria-label="Query" defaultValue={text} key={text} className="font-mono" />
         <Button type="submit">Run</Button>
       </form>
-      <LiveChart text={text} />
+      {unitPreference.ready ? <LiveChart text={text} /> : <Loading what="your Unit preferences" />}
     </div>
   );
 }
