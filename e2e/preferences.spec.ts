@@ -64,13 +64,12 @@ test("Explore starts on the preferred Unit, and leaves typed Queries as written"
 test("when browser storage fails, values show in Ridr's Units and the screen says why", async ({ page }) => {
   await page.addInitScript(() => {
     const { getItem, setItem } = Storage.prototype;
-    const broken = (key: string) => key.startsWith("ridr.unitPreferences");
     Storage.prototype.getItem = function (key: string) {
-      if (broken(key)) throw new DOMException("blocked", "SecurityError");
+      if (key.startsWith("ridr.unitPreferences")) throw new DOMException("blocked", "SecurityError");
       return getItem.call(this, key);
     };
     Storage.prototype.setItem = function (key: string, value: string) {
-      if (broken(key)) throw new DOMException("full", "QuotaExceededError");
+      if (key.startsWith("ridr.unitPreferences")) throw new DOMException("full", "QuotaExceededError");
       return setItem.call(this, key, value);
     };
   });
