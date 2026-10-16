@@ -1,6 +1,7 @@
 import type { NavGroup } from "@/components/layout/nav-types";
-import { ScrollText } from "lucide-react";
+import { Cable, ScrollText } from "lucide-react";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
+import { dataSourcesPath, dataSourcesPermission } from "@/app/routes/data-sources";
 import { testOnlyNav } from "@/app/routes/test-only";
 
 // The sidebar. Each feature adds its link to its group here, with the
@@ -22,6 +23,7 @@ export const nav: NavGroup[] = [
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
     items: [
+      { label: "Data sources", to: dataSourcesPath, icon: Cable, permission: dataSourcesPermission },
       { label: "Audit log", to: auditLogPath, icon: ScrollText, permission: auditLogPermission },
       ...testOnlyNav,
     ],

@@ -3,6 +3,13 @@ import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
 import { AgentGuideRoute } from "@/app/routes/agent-guide";
 import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
+import {
+  AdapterRoute,
+  DataSourcesRoute,
+  dataSourcesPath,
+  NewDataSourceRoute,
+  newDataSourcePath,
+} from "@/app/routes/data-sources";
 import { HomeRoute } from "@/app/routes/home";
 import { NotFoundRoute } from "@/app/routes/not-found";
 import {
@@ -19,6 +26,9 @@ import { AppShell } from "@/components/layout/app-shell";
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
+  { path: dataSourcesPath, element: <DataSourcesRoute /> },
+  { path: newDataSourcePath, element: <NewDataSourceRoute /> },
+  { path: `${dataSourcesPath}/:adapterId`, element: <AdapterRoute /> },
   ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),
   { path: "*", element: <NotFoundRoute /> },
 ];
