@@ -1,6 +1,9 @@
-import { Boxes } from "lucide-react";
-import { assetsPermission } from "@/app/routes/assets";
+import { BookOpen, Boxes, KeyRound, ScrollText } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
+import { assetsPath, assetsPermission } from "@/app/routes/assets";
+import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
+import { catalogPath, catalogPermission } from "@/app/routes/catalog";
+import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
 import { testOnlyNav } from "@/app/routes/test-only";
 
 // The sidebar. Each feature adds its link to its group here, with the
@@ -13,7 +16,7 @@ export const nav: NavGroup[] = [
   },
   {
     label: "Fleet", // Assets, Unclaimed devices
-    items: [{ label: "Assets", to: "/assets", icon: Boxes, permission: assetsPermission }],
+    items: [{ label: "Assets", to: assetsPath, icon: Boxes, permission: assetsPermission }],
   },
   {
     label: "Alerting", // Rules, Silences, Contact groups
@@ -21,6 +24,16 @@ export const nav: NavGroup[] = [
   },
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
-    items: [...testOnlyNav],
+    items: [
+      { label: "Catalog", to: catalogPath, icon: BookOpen, permission: catalogPermission },
+      {
+        label: "Controlled keys",
+        to: controlledKeysPath,
+        icon: KeyRound,
+        permission: controlledKeysPermission,
+      },
+      { label: "Audit log", to: auditLogPath, icon: ScrollText, permission: auditLogPermission },
+      ...testOnlyNav,
+    ],
   },
 ];

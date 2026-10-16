@@ -1,10 +1,19 @@
 import { createBrowserRouter, Outlet, RouterProvider, type RouteObject } from "react-router";
 import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
-import { AssetsRoute } from "@/app/routes/assets";
+import { AgentGuideRoute } from "@/app/routes/agent-guide";
+import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
+import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
+import { AssetsRoute, assetsPath } from "@/app/routes/assets";
+import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
 import { HomeRoute } from "@/app/routes/home";
 import { NotFoundRoute } from "@/app/routes/not-found";
-import { TestOnlyGatedRoute, testOnlyPath } from "@/app/routes/test-only";
+import {
+  TestOnlyAgentGuideRoute,
+  testOnlyAgentGuidePath,
+  TestOnlyGatedRoute,
+  testOnlyPath,
+} from "@/app/routes/test-only";
 import { AppShell } from "@/components/layout/app-shell";
 
 // Routes inside the shell, signed in. Each feature adds its routes here,
@@ -12,13 +21,20 @@ import { AppShell } from "@/components/layout/app-shell";
 // (the same one as its nav link in nav.ts).
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
-  { path: "assets", element: <AssetsRoute /> },
+  { path: assetsPath, element: <AssetsRoute /> },
+  { path: catalogPath, element: <CatalogRoute /> },
+  { path: controlledKeysPath, element: <ControlledKeysRoute /> },
+  { path: auditLogPath, element: <AuditLogRoute /> },
   ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),
   { path: "*", element: <NotFoundRoute /> },
 ];
 
 const router = createBrowserRouter([
-  // Public routes (such as the Agent guide) go here, outside the session.
+  // Public routes go here, outside the session.
+  { path: "/docs/agents", element: <AgentGuideRoute /> },
+  ...(import.meta.env.DEV
+    ? [{ path: testOnlyAgentGuidePath, element: <TestOnlyAgentGuideRoute /> }]
+    : []),
   {
     // Everything below is one session: switching Organisation or signing
     // out rebuilds it from an empty cache.

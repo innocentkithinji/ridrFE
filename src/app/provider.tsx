@@ -1,17 +1,33 @@
 import type { Transport } from "@connectrpc/connect";
 import { TransportProvider } from "@connectrpc/connect-query";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { DevSession } from "@/app/dev-session";
 import { MeProvider } from "@/app/me-provider";
+import { Loading } from "@/components/states";
 import { env } from "@/config/env";
 import { createQueryClient } from "@/lib/query-client";
 import { useSession } from "@/lib/session";
 import { createRidrTransport } from "@/lib/transport";
 
-// AppProvider is the signed-in provider tree: the session (the dev token
-// for now; Clerk joins here), then transport, query cache and GetMe.
+// Clerk's code loads only when the app signs in with Clerk.
+const ClerkSession = lazy(() =>
+  import("@/app/clerk-session").then((m) => ({ default: m.ClerkSession })),
+);
+
+// AppProvider is the signed-in provider tree: the session (Clerk when a
+// publishable key is set, the dev token otherwise), then transport,
+// query cache and GetMe.
 export function AppProvider({ children }: { children: ReactNode }) {
+  if (env.clerkPublishableKey) {
+    return (
+      <Suspense fallback={<Loading what="sign-in" />}>
+        <ClerkSession publishableKey={env.clerkPublishableKey}>
+          <RidrProvider>{children}</RidrProvider>
+        </ClerkSession>
+      </Suspense>
+    );
+  }
   return (
     <DevSession>
       <RidrProvider>{children}</RidrProvider>

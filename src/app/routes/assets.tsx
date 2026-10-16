@@ -3,6 +3,8 @@ import { RequirePermission } from "@/components/require-permission";
 import { AssetsScreen } from "@/features/assets/components/assets-screen";
 import { permissionOf } from "@/lib/me";
 
+export const assetsPath = "/assets";
+
 export const assetsPermission = permissionOf(RegistryService.method.listAssets);
 
 export function AssetsRoute() {
