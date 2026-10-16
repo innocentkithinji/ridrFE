@@ -198,3 +198,66 @@ test("a geofence crossing ±180° is refused with an explanation", async ({ page
   await page.getByRole("button", { name: "Create Rule" }).click();
   await expect(page).toHaveURL(/\/rules\/new$/);
 });
+
+test("an editor creates a no-data Rule", async ({ page }) => {
+  const name = unique("silent");
+  await openNewRule(page, name);
+  await page.getByRole("button", { name: "Add Attribute" }).click();
+  await page.getByRole("combobox", { name: "Key 1" }).fill("e2e_rule");
+  await page.getByRole("textbox", { name: "Value 1" }).fill(name.split(" ").at(-1)!);
+  await page.getByRole("radio", { name: "No data" }).check();
+  await page.getByLabel("Silent for (minutes)").fill("0.5");
+  await page.getByRole("button", { name: "Create Rule" }).click();
+  await expect(page.getByText("At least 1 minute.")).toBeVisible();
+  await page.getByLabel("Silent for (minutes)").fill("15");
+  await page.getByRole("button", { name: "Create Rule" }).click();
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByText("no Reading for 15 minutes")).toBeVisible();
+  await expect(page.getByText("This Rule hasn't raised any Alerts.")).toBeVisible();
+});
+
+const demoFridgeRule = "Demo medicine fridge above 8 °C";
+
+test("a Rule's detail lists its Alerts, and an Alert links back to its Rule", async ({ page }) => {
+  await page.goto("/rules");
+  await page.getByRole("link", { name: demoFridgeRule }).click();
+  const ruleUrl = page.url();
+  const alerts = page.getByRole("table", { name: "Alerts of this Rule" });
+  await alerts.getByRole("link").first().click();
+  await expect(page).toHaveURL(/\/alerts\/[0-9a-f-]+$/);
+  await page.getByRole("link", { name: demoFridgeRule }).click();
+  await expect(page).toHaveURL(ruleUrl);
+});
+
+// as signs the page in as another dev user, by swapping the token on
+// every call to Ridr.
+async function as(page: Page, userToken: string) {
+  await page.route(`${api}/**`, (route) =>
+    route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${userToken}` } }),
+  );
+}
+
+test("a viewer sees a Rule's settings read-only", async ({ page }) => {
+  await as(page, "dev-viewer-token");
+  await page.goto("/rules");
+  await expect(page.getByRole("link", { name: demoFridgeRule })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create" })).toHaveCount(0);
+  await page.getByRole("link", { name: demoFridgeRule }).click();
+  await expect(page.getByText("temperature above 8 °C")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Edit|Disable|Enable|Delete/ })).toHaveCount(0);
+});
+
+test("a scoped editor's selector starts from their Scope; one outside it shows the server's reason", async ({ page }) => {
+  await as(page, "dev-scoped-token");
+  await openNewRule(page, unique("scoped"));
+  await expect(page.getByText("You see only Rules whose selector lies inside your Scope")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Key 1" })).toHaveValue("fleet");
+  await page.getByRole("button", { name: "Remove Attribute 1" }).click();
+  await page.getByLabel("Metric").selectOption("speed");
+  await page.getByLabel("Value", { exact: true }).fill("1000");
+  await page.getByRole("button", { name: "Create Rule" }).click();
+  const refusal = page.getByRole("alert");
+  await expect(refusal).toBeVisible();
+  await expect(refusal).not.toHaveText("You don't have access to this.");
+  await expect(page).toHaveURL(/\/rules\/new$/);
+});
