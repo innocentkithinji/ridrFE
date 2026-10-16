@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet, RouterProvider, type RouteObject } from "r
 import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
 import { HomeRoute } from "@/app/routes/home";
+import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
 import { NotFoundRoute } from "@/app/routes/not-found";
 import { TestOnlyGatedRoute, testOnlyPath } from "@/app/routes/test-only";
 import { AppShell } from "@/components/layout/app-shell";
@@ -11,7 +12,12 @@ import { AppShell } from "@/components/layout/app-shell";
 // (the same one as its nav link in nav.ts).
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
-  ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),
+  ...(import.meta.env.DEV
+    ? [
+        { path: testOnlyPath, element: <TestOnlyGatedRoute /> },
+        { path: liveQueryDevPath, element: <LiveQueryDevRoute /> },
+      ]
+    : []),
   { path: "*", element: <NotFoundRoute /> },
 ];
 
