@@ -1,4 +1,5 @@
 import { Code, ConnectError } from "@connectrpc/connect";
+import { fieldErrorId } from "@/features/data-sources/components/section";
 import { messageFor } from "@/lib/errors";
 
 // A field of the MQTT bridge form.
@@ -24,3 +25,11 @@ export const brokerUrlHint =
   "mqtt:// or tcp:// (plain), mqtts://, ssl:// or tls:// (encrypted), ws:// or wss:// (websockets), with a host and a port, as in mqtts://mqtt.example.com:8883. Only ws and wss have a path, such as /mqtt. No credentials in the URL. Encrypted brokers need a certificate from a public authority, and private addresses are refused unless this Ridr allows them.";
 
 export const topicFilterHint = "One MQTT 3.1.1 topic filter, as in hfp/v2/journey/#.";
+
+// invalidProps marks a control invalid and described by its error while
+// the error is about its field.
+export function invalidProps(error: BridgeError | null, field: BridgeField, id: string) {
+  return error?.field === field
+    ? { "aria-invalid": true, "aria-describedby": fieldErrorId(id) }
+    : {};
+}

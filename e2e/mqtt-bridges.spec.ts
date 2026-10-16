@@ -114,3 +114,39 @@ test("refused broker URLs and topic filters show Ridr's reason beside the field"
   await expect(brokerUrl).not.toHaveAttribute("aria-invalid");
   await expect(page.getByRole("alert")).toHaveCount(1);
 });
+
+test("edit a bridge, keeping, removing and replacing its password", async ({ page, request }) => {
+  const name = unique("edit");
+  created.push(name);
+  const adapterId = await createBridge(request, name, "secret");
+
+  await page.goto(`/settings/data-sources/${adapterId}`);
+  const bridge = page.getByRole("region", { name: "MQTT bridge" });
+  await expect(bridge).toContainText("Password set");
+
+  // Leaving the password alone keeps it.
+  await bridge.getByRole("button", { name: "Edit" }).click();
+  await expect(bridge.getByLabel("Broker URL")).toHaveValue(localBroker);
+  await bridge.getByLabel("Topic filter").fill("e2e/changed/#");
+  await bridge.getByRole("button", { name: "Save" }).click();
+  await expect(bridge).toContainText("e2e/changed/#");
+  await expect(bridge).toContainText("Password set");
+
+  // A refused change says why beside the field and keeps the form open.
+  await bridge.getByRole("button", { name: "Edit" }).click();
+  await bridge.getByLabel("Broker URL").fill("http://broker.example.com:1883");
+  await bridge.getByRole("button", { name: "Save" }).click();
+  await expect(bridge.getByLabel("Broker URL")).toHaveAccessibleDescription(/scheme must be one of/);
+  await bridge.getByLabel("Broker URL").fill(localBroker);
+
+  await bridge.getByRole("radio", { name: "Remove the password" }).check();
+  await bridge.getByRole("button", { name: "Save" }).click();
+  await expect(bridge).toContainText("No password");
+
+  await bridge.getByRole("button", { name: "Edit" }).click();
+  await bridge.getByRole("radio", { name: "Set a new password" }).check();
+  await bridge.getByLabel("New password", { exact: true }).fill("another");
+  await bridge.getByRole("button", { name: "Save" }).click();
+  await expect(bridge).toContainText("Password set");
+  await expect(bridge.getByRole("button", { name: "Save" })).toHaveCount(0);
+});

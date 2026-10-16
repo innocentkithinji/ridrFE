@@ -6,10 +6,11 @@ import { useCreateMqttBridge } from "@/features/data-sources/api/create-mqtt-bri
 import {
   bridgeError,
   brokerUrlHint,
+  invalidProps,
   topicFilterHint,
   type BridgeError,
 } from "@/features/data-sources/bridge-errors";
-import { Field, fieldErrorId } from "@/features/data-sources/components/section";
+import { Field } from "@/features/data-sources/components/section";
 import { adapterPath } from "@/features/data-sources/paths";
 
 // CreateMqttBridgeForm creates a bridge that subscribes to a broker
@@ -25,9 +26,7 @@ export function CreateMqttBridgeForm() {
   const [topicFilter, setTopicFilter] = useState("");
   const [error, setError] = useState<BridgeError | null>(null);
   const errorFor = (field: BridgeError["field"]) => (error?.field === field ? error.message : null);
-  // Marks a control invalid and described by its error, while it has one.
-  const invalid = (field: BridgeError["field"], id: string) =>
-    error?.field === field ? { "aria-invalid": true, "aria-describedby": fieldErrorId(id) } : {};
+  const invalid = (field: BridgeError["field"], id: string) => invalidProps(error, field, id);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

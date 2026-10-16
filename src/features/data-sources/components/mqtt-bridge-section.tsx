@@ -1,9 +1,12 @@
 import { ConnectorService, type MqttBridge } from "@ridr/web";
+import { useState } from "react";
 import { DataCredit } from "@/components/data-credit";
 import { QueryView } from "@/components/states";
+import { Button } from "@/components/ui/button";
 import { useIsMqttBridge, useMqttBridge } from "@/features/data-sources/api/get-mqtt-bridges";
 import type { AdapterSectionProps } from "@/features/data-sources/components/adapter-screen";
 import { BridgeStatus } from "@/features/data-sources/components/bridge-status";
+import { EditMqttBridgeForm } from "@/features/data-sources/components/edit-mqtt-bridge-form";
 import { Section } from "@/features/data-sources/components/section";
 import { useCan } from "@/lib/me";
 
@@ -22,11 +25,27 @@ export function MqttBridgeSection({ adapter, retired }: AdapterSectionProps) {
   );
 }
 
-function BridgeDetails({ adapterId }: { adapterId: string; retired: boolean }) {
+function BridgeDetails({ adapterId, retired }: { adapterId: string; retired: boolean }) {
   const bridge = useMqttBridge(adapterId);
+  const canUpdate = useCan(ConnectorService.method.updateMqttBridge) && !retired;
+  const [editing, setEditing] = useState(false);
   return (
     <QueryView query={bridge} what="the bridge" isEmpty={(data) => !data.bridge} empty="Not a bridge.">
-      {(data) => data.bridge && <BridgeSettings bridge={data.bridge} />}
+      {(data) =>
+        data.bridge && (
+          <div className="space-y-4">
+            <BridgeSettings bridge={data.bridge} />
+            {canUpdate &&
+              (editing ? (
+                <EditMqttBridgeForm bridge={data.bridge} onDone={() => setEditing(false)} />
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                  Edit
+                </Button>
+              ))}
+          </div>
+        )
+      }
     </QueryView>
   );
 }
