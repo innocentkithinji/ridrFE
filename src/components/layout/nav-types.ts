@@ -8,6 +8,8 @@ export type NavItem = {
   to: string;
   icon: LucideIcon;
   permission: Permission;
+  // Hide the link from users who see only some Assets.
+  hiddenWhenScoped?: boolean;
 };
 
 // A titled section of the sidebar; one with no visible links is hidden.
