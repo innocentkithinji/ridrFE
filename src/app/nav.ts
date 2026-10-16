@@ -7,6 +7,7 @@ import {
   ChartLine,
   CircleDashed,
   KeyRound,
+  ListChecks,
   ScrollText,
   Users,
   UsersRound,
@@ -19,6 +20,7 @@ import { explorePath, explorePermission } from "@/app/routes/explore";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { contactGroupsPath, contactGroupsPermission } from "@/app/routes/contact-groups";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
+import { rulesPath, rulesPermission } from "@/app/routes/rules";
 import { silencesPath, silencesPermission } from "@/app/routes/silences";
 import { teamPath, teamPermission } from "@/app/routes/team";
 import { dataSourcesPath, dataSourcesPermission } from "@/app/routes/data-sources";
@@ -54,6 +56,7 @@ export const nav: NavGroup[] = [
   {
     label: "Alerting", // Rules, Silences, Contact groups
     items: [
+      { label: "Rules", to: rulesPath, icon: ListChecks, permission: rulesPermission },
       { label: "Silences", to: silencesPath, icon: BellOff, permission: silencesPermission },
       {
         label: "Contact groups",
