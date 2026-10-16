@@ -2,6 +2,7 @@ import {
   BookOpen,
   Boxes,
   Cable,
+  ChartLine,
   CircleDashed,
   KeyRound,
   ScrollText,
@@ -11,6 +12,7 @@ import {
 import type { NavGroup } from "@/components/layout/nav-types";
 import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
+import { explorePath, explorePermission } from "@/app/routes/explore";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
 import { contactGroupsPath, contactGroupsPermission } from "@/app/routes/contact-groups";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
@@ -25,7 +27,7 @@ import { unclaimedDevicesPath, unclaimedDevicesPermission } from "@/app/routes/u
 export const nav: NavGroup[] = [
   {
     label: "Monitor", // Home, Alerts, Explore, Dashboards
-    items: [],
+    items: [{ label: "Explore", to: explorePath, icon: ChartLine, permission: explorePermission }],
   },
   {
     label: "Fleet", // Assets, Unclaimed devices
