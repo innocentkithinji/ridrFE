@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDeclareControlledKey } from "@/features/controlled-keys/api/change-controlled-keys";
-import { FormError } from "@/features/controlled-keys/components/form-error";
+import { FormError } from "@/components/form-error";
 import { parseValues } from "@/features/controlled-keys/components/parse-values";
 
 // DeclareControlledKeyForm makes an Attribute key controlled, with the

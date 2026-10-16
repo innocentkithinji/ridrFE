@@ -10,6 +10,7 @@ import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled
 import { HomeRoute } from "@/app/routes/home";
 import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
 import { NotFoundRoute } from "@/app/routes/not-found";
+import { TeamRoute, teamPath } from "@/app/routes/team";
 import {
   TestOnlyAgentGuideRoute,
   testOnlyAgentGuidePath,
@@ -27,6 +28,7 @@ const shellRoutes: RouteObject[] = [
   { path: contactGroupsPath, element: <ContactGroupsRoute /> },
   { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
+  { path: teamPath, element: <TeamRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
   ...(import.meta.env.DEV
     ? [
