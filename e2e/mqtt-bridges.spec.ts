@@ -172,3 +172,48 @@ test("deleting a bridge asks first, says Readings stay, and retires its Adapter"
   await expect(row).not.toContainText("MQTT bridge");
   expect(await bridgeNamed(request, name)).toBeUndefined();
 });
+
+test("the demo's HSL and Fintraffic bridges show connected, with their data credit", async ({
+  page,
+}) => {
+  await page.goto("/settings/data-sources");
+  for (const name of ["HSL tram 40/421 positions", "Fintraffic train 35"]) {
+    const row = page.getByRole("row").filter({ hasText: name });
+    await expect(row).toContainText("MQTT bridge");
+    await expect(row).toContainText("Connected");
+  }
+  const credit = page.getByRole("complementary", { name: "Data credit" });
+  await expect(credit).toContainText("HSL vehicle positions © Digitransit 2026, CC BY 4.0");
+  await expect(credit).toContainText("Source: Fintraffic / digitraffic.fi, CC BY 4.0.");
+
+  await page.getByRole("link", { name: "Fintraffic train 35" }).click();
+  const bridge = page.getByRole("region", { name: "MQTT bridge" });
+  await expect(bridge.getByRole("status")).toContainText("Connected");
+  await expect(bridge).toContainText("wss://rata.digitraffic.fi:443/mqtt");
+  await expect(bridge.getByRole("complementary", { name: "Data credit" })).toHaveText(
+    "Source: Fintraffic / digitraffic.fi, CC BY 4.0.",
+  );
+});
+
+test("viewers, editors and scoped admins see a bridge's settings but can't change it", async ({
+  page,
+  request,
+}) => {
+  const name = unique("readonly");
+  created.push(name);
+  const adapterId = await createBridge(request, name, "secret");
+  await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
+    const response = await route.fetch();
+    const me = await response.json();
+    me.permissions = me.permissions.filter(
+      (p: string) => !/(Create|Update|Delete)MqttBridge$|RegisterAdapter$|RetireAdapter$/.test(p),
+    );
+    await route.fulfill({ response, json: me });
+  });
+
+  await page.goto(`/settings/data-sources/${adapterId}`);
+  const bridge = page.getByRole("region", { name: "MQTT bridge" });
+  await expect(bridge).toContainText(localBroker);
+  await expect(bridge).toContainText("Password set");
+  await expect(bridge.getByRole("button")).toHaveCount(0);
+});
