@@ -1,8 +1,9 @@
-import { ContactGroupService } from "@ridr/web";
-import { UsersRound } from "lucide-react";
-import { contactGroupsPath } from "@/app/routes/contact-groups";
+import { BookOpen, KeyRound, ScrollText, UsersRound } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
-import { permissionOf } from "@/lib/me";
+import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
+import { catalogPath, catalogPermission } from "@/app/routes/catalog";
+import { contactGroupsPath, contactGroupsPermission } from "@/app/routes/contact-groups";
+import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
 import { testOnlyNav } from "@/app/routes/test-only";
 
 // The sidebar. Each feature adds its link to its group here, with the
@@ -24,12 +25,22 @@ export const nav: NavGroup[] = [
         label: "Contact groups",
         to: contactGroupsPath,
         icon: UsersRound,
-        permission: permissionOf(ContactGroupService.method.listContactGroups),
+        permission: contactGroupsPermission,
       },
     ],
   },
   {
     label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
-    items: [...testOnlyNav],
+    items: [
+      { label: "Catalog", to: catalogPath, icon: BookOpen, permission: catalogPermission },
+      {
+        label: "Controlled keys",
+        to: controlledKeysPath,
+        icon: KeyRound,
+        permission: controlledKeysPermission,
+      },
+      { label: "Audit log", to: auditLogPath, icon: ScrollText, permission: auditLogPermission },
+      ...testOnlyNav,
+    ],
   },
 ];

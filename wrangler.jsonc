@@ -1,0 +1,14 @@
+// The app deploys as a Worker with static assets and no Worker script:
+// Cloudflare serves the Vite build in ./dist and answers any URL that
+// is not a file with index.html, so deep links such as /assets/<id>
+// load the app and the router takes over. Deploys run from GitHub
+// Actions (ADR 0002); see .github/workflows/ci.yml.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ridr-web",
+  "compatibility_date": "2026-10-08",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

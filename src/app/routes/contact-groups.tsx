@@ -5,12 +5,11 @@ import { permissionOf } from "@/lib/me";
 
 export const contactGroupsPath = "/settings/contact-groups";
 
+export const contactGroupsPermission = permissionOf(ContactGroupService.method.listContactGroups);
+
 export function ContactGroupsRoute() {
   return (
-    <RequirePermission
-      permission={permissionOf(ContactGroupService.method.listContactGroups)}
-      what="Contact groups"
-    >
+    <RequirePermission permission={contactGroupsPermission} what="Contact groups">
       <ContactGroupsList />
     </RequirePermission>
   );
