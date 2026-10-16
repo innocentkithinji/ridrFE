@@ -13,6 +13,7 @@ import type { AdapterSectionProps } from "@/features/data-sources/components/ada
 import { When } from "@/features/data-sources/components/format";
 import { Field, Section } from "@/features/data-sources/components/section";
 import { parseDeviceIds } from "@/features/data-sources/devices";
+import { webhookUrlFor } from "@/features/data-sources/webhook-urls";
 import { messageFor } from "@/lib/errors";
 import { useCan } from "@/lib/me";
 
@@ -25,6 +26,8 @@ export function IngestKeysSection({ adapter, retired }: AdapterSectionProps) {
   const [issued, setIssued] = useState<string | null>(null);
   const [showingKey, setShowingKey] = useState(false);
   if (!canList) return null;
+  // On a Webhook connector, a new key makes a new URL.
+  const webhookUrl = issued ? webhookUrlFor(adapter.id, issued) : null;
 
   return (
     <Section title="Ingest keys">
@@ -44,13 +47,29 @@ export function IngestKeysSection({ adapter, retired }: AdapterSectionProps) {
       )}
       <SecretDialog
         title="Ingest key issued"
-        secrets={issued && showingKey ? [{ label: "Ingest key", value: issued }] : null}
-        onDone={() => setShowingKey(false)}
+        secrets={
+          issued && showingKey
+            ? [
+                { label: "Ingest key", value: issued },
+                ...(webhookUrl ? [{ label: "Webhook URL", value: webhookUrl }] : []),
+              ]
+            : null
+        }
+        onDone={() => {
+          setShowingKey(false);
+          if (webhookUrl) setIssued(null);
+        }}
       >
-        The Agent for {adapter.name} sends with this key as{" "}
-        <code>Authorization: Bearer &lt;key&gt;</code>.
+        {webhookUrl ? (
+          <>The vendor cloud POSTs to {adapter.name} at this new URL, which ends with the key.</>
+        ) : (
+          <>
+            The Agent for {adapter.name} sends with this key as{" "}
+            <code>Authorization: Bearer &lt;key&gt;</code>.
+          </>
+        )}
       </SecretDialog>
-      {issued && !showingKey && (
+      {issued && !showingKey && !webhookUrl && (
         <div className="space-y-2 border-t pt-4">
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" onClick={() => setIssued(null)}>
