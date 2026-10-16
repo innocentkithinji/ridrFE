@@ -94,7 +94,7 @@ test("an Alert's detail shows its state, value, times and Deliveries", async ({ 
   const facts = page.getByRole("definition");
   await expect(page.getByText("State", { exact: true })).toBeVisible();
   await expect(facts.filter({ hasText: "Resolved" }).first()).toBeVisible();
-  await expect(facts.filter({ hasText: /\d Cel$/ })).toBeVisible();
+  await expect(facts.filter({ hasText: /\d °C$/ })).toBeVisible();
 
   const deliveries = page.getByRole("table", { name: "Deliveries" });
   const email = deliveries.getByRole("row").filter({ hasText: "operations@example.com" }).first();

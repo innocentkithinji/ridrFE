@@ -8,7 +8,8 @@ import { AlertActions } from "@/features/alerts/components/alert-actions";
 import { AlertReadings } from "@/features/alerts/components/alert-readings";
 import { AlertStateBadge } from "@/features/alerts/components/alert-state";
 import { Deliveries } from "@/features/alerts/components/deliveries-table";
-import { formatTime, formatValue } from "@/lib/format";
+import { formatTime } from "@/lib/format";
+import { withUnit } from "@/lib/units";
 import { Can } from "@/lib/me";
 
 // AlertDetailScreen is /alerts/:alertId. There is no GetAlert, so it
@@ -55,7 +56,7 @@ function AlertSections({ alert }: { alert: Alert }) {
             <AlertActions alert={alert} />
           </span>
         </Fact>
-        <Fact term="Value">{formatValue(alert.value, alert.unit)}</Fact>
+        <Fact term="Value">{withUnit(alert.value, alert.unit)}</Fact>
         <Fact term="Fired">{formatTime(alert.firedAt)}</Fact>
         <Fact term="Acknowledged">{byWhom(formatTime(alert.acknowledgedAt), alert.acknowledgedBy)}</Fact>
         <Fact term="Resolved">{byWhom(formatTime(alert.resolvedAt), alert.resolvedBy)}</Fact>

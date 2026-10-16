@@ -2,7 +2,8 @@ import type { Alert } from "@ridr/web";
 import { Link } from "react-router";
 import { AlertActions } from "@/features/alerts/components/alert-actions";
 import { AlertStateBadge } from "@/features/alerts/components/alert-state";
-import { formatTime, formatValue } from "@/lib/format";
+import { formatTime } from "@/lib/format";
+import { withUnit } from "@/lib/units";
 
 // AlertsTable lists Alerts one per row, each linking to its detail.
 export function AlertsTable({ alerts, label }: { alerts: Alert[]; label: string }) {
@@ -33,7 +34,7 @@ export function AlertsTable({ alerts, label }: { alerts: Alert[]; label: string 
                 </Link>
               </td>
               <td className="px-3 py-2">{alert.ruleName}</td>
-              <td className="px-3 py-2 tabular-nums">{formatValue(alert.value, alert.unit)}</td>
+              <td className="px-3 py-2 tabular-nums">{withUnit(alert.value, alert.unit)}</td>
               <td className="px-3 py-2 whitespace-nowrap">{formatTime(alert.firedAt)}</td>
               <td className="px-3 py-2 text-right">
                 <AlertActions alert={alert} />

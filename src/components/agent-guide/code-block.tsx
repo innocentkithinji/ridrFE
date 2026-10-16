@@ -1,7 +1,7 @@
 import { Check, Copy } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { fill, segments, type GuideValues } from "@/features/agent-guide/fill";
+import { fill, segments, type GuideValues } from "@/components/agent-guide/fill";
 
 type CodeBlockProps = {
   text: string;

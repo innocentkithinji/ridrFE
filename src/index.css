@@ -81,6 +81,14 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    /* Query editor highlighting (src/components/query-editor) */
+    --query-source: #6250d6;
+    --query-keyword: #2a78d6;
+    --query-operator: #eb6834;
+    --query-duration: #008300;
+    --query-string: #b25c00;
+    --query-function: #c2185b;
+    --query-field: #0e7c86;
 }
 
 .dark {
@@ -115,6 +123,13 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --query-source: #9085e9;
+    --query-keyword: #3987e5;
+    --query-operator: #d95926;
+    --query-duration: #4caf50;
+    --query-string: #c98500;
+    --query-function: #d55181;
+    --query-field: #26a6b0;
 }
 
 @layer base {

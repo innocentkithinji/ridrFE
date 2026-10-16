@@ -17,7 +17,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useMe } from "@/lib/me";
+import { useIsScoped, useMe } from "@/lib/me";
 
 // AppShell frames every signed-in screen: the sidebar of the links the
 // user may open, who and where they are, and the theme toggle.
@@ -58,10 +58,13 @@ export function AppShell({ nav }: { nav: NavGroup[] }) {
 }
 
 // VisibleNav shows each group's links the user has the Permission for,
-// and drops groups left empty.
+// hides links not meant for scoped users from them, and drops groups
+// left empty.
 function VisibleNav({ nav }: { nav: NavGroup[] }) {
   const permissions = useMe().permissions;
-  const allowed = (item: NavItem) => permissions.includes(item.permission);
+  const scoped = useIsScoped();
+  const allowed = (item: NavItem) =>
+    permissions.includes(item.permission) && !(scoped && item.hiddenWhenScoped);
   return nav.map((group) => {
     const items = group.items.filter(allowed);
     if (items.length === 0) return null;
