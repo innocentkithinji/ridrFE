@@ -35,18 +35,62 @@ npm run dev          # http://localhost:5173, signed in with the dev token
 ```
 
 `.env.example` lists the settings (`VITE_RIDR_API_URL`,
-`VITE_RIDR_DEV_TOKEN`); put overrides in `.env.local`.
+`VITE_RIDR_DEV_TOKEN`, `VITE_CLERK_PUBLISHABLE_KEY`); put overrides in
+`.env.local`. Without a Clerk key the app signs in with the dev token
+and never loads Clerk's code.
+
+A production build (`npm run build`) refuses to run unless it sets
+`VITE_CLERK_PUBLISHABLE_KEY`, or names `VITE_RIDR_DEV_TOKEN` on purpose
+to build for a local stack, so a missing key never falls back to the
+dev token.
 
 | Command | Does |
 |---|---|
 | `npm run dev` | dev server (port from `PORT`, default 5173) |
 | `npm run typecheck` | TypeScript 7 (`tsc`) |
 | `npm run lint` | oxlint; warnings fail |
-| `npm run build` | type-check, then a production build |
+| `npm run build` | type-check, then a production build (needs the Clerk key or a named dev token) |
 | `npm run test:e2e` | Playwright against the running local stack |
 
 Run `npx playwright install chromium` once. Tests start their own dev
-server on `PORT` (default 5173) or reuse one already there.
+server on `PORT` (default 5173) or reuse one already there. They cover
+the dev-token Session only; Clerk sign-in is checked by hand (below).
+
+## Checking Clerk sign-in by hand
+
+Playwright can't sign in to Clerk, so check this before releasing a
+change to sign-in or the session. You need a Clerk development instance
+set up as in the backend's
+[Getting started, step 5](../Ridr/docs/frontend/getting-started.md#5-sign-in-with-clerk):
+Organizations on, the `email` claim added, the dev Tenant linked to
+your Clerk organisation, and Ridr restarted with `CLERK_SECRET_KEY` and
+`CLERK_AUTHORIZED_PARTIES=http://localhost:5173`. Run `make demo`
+first: the demo signs in with the dev token, which Clerk turns off.
+
+1. Put `VITE_CLERK_PUBLISHABLE_KEY=pk_test_…` in `.env.local` and run
+   `npm run dev`.
+2. Open http://localhost:5173 in a private window. **Clerk's sign-in
+   shows**, and nothing else: no sidebar, and the network tab shows no
+   call to Ridr.
+3. Sign in as a user with no active Organisation (or with more than
+   one, none chosen). **"Choose an Organisation" shows**, still with no
+   call to Ridr.
+4. Pick the Organisation linked to the dev Tenant. The shell shows,
+   with your email and "Dev tenant" in the user menu and Clerk's
+   Organisation switcher beside it. In the network tab, `GetMe` carries
+   `Authorization: Bearer …`.
+5. Open a page that loads data, then switch to another Organisation
+   with the switcher. **The screen empties and `GetMe` is called
+   again**; nothing from the first Organisation shows, and any open
+   Live query's request is cancelled.
+6. If that Organisation isn't linked to a Tenant, **"This Organisation
+   isn't set up in Ridr yet." shows** with the switcher and "Sign out";
+   switching back to the dev Tenant's Organisation restores the app.
+7. Sign out from the user menu. **Clerk's sign-in shows again**, and
+   signing back in calls `GetMe` afresh.
+8. Remove the key from `.env.local` and restart `npm run dev`: the app
+   signs in with the dev token, and the network tab shows no request
+   for Clerk's code.
 
 ## Layout
 
@@ -62,7 +106,8 @@ src/
     index.tsx           App: theme, then the router
     router.tsx          URLs → route screens; the session wraps signed-in routes
     nav.ts              the sidebar: groups Monitor, Fleet, Alerting, Settings
-    provider.tsx        AppProvider (session), RidrProvider (transport, cache, GetMe)
+    provider.tsx        AppProvider (Clerk, loaded lazily, or the dev token), RidrProvider (transport, cache, GetMe)
+    clerk-session.tsx   the Session from Clerk: sign-in, Organisation picker, switcher
     dev-session.tsx     the Session from the dev token
     me-provider.tsx     holds screens back until GetMe answers
     routes/             one thin file per route: reads params, renders a feature
@@ -77,6 +122,7 @@ src/
     components/         the feature's screens and parts
   lib/                  Session, transport, query cache, useMe/useCan/permissionOf, errors, theme
   config/env.ts         VITE_ settings
+  config/sign-in.ts     why a production build may not go out (read by vite.config.ts)
 e2e/                    Playwright tests, one file per feature
 ```
 
