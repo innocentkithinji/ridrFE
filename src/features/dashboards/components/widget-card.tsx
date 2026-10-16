@@ -1,5 +1,5 @@
 import { ConnectError } from "@connectrpc/connect";
-import type { QueryProblem, RunQueryResponse } from "@ridr/web";
+import type { Query, QueryProblem, RunQueryResponse } from "@ridr/web";
 import { LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnswerTable } from "@/components/answer-table";
@@ -16,6 +16,7 @@ import { StatView } from "@/features/dashboards/components/stat-view";
 import type { Visualization, WidgetDraft } from "@/features/dashboards/widgets";
 import { isRefusal, isTooCostly, messageFor, queryProblemOf } from "@/lib/errors";
 import { useCan } from "@/lib/me";
+import { useWithUnitPreference } from "@/lib/use-unit-preferences";
 import { cn } from "@/lib/utils";
 
 // The class the grid drags a Widget by: its header.
@@ -36,7 +37,13 @@ type WidgetCardProps = {
 export function WidgetCard({ widget, problem, onEdit, onRemove }: WidgetCardProps) {
   const canExplain = useCan(QueryService.method.explainQuery);
   const explain = useExplainQuery(widget.text, { enabled: canExplain && !widget.understood });
-  const result = useWidgetResult(widget.text, widget.understood ?? explain.data?.query, { live: true });
+  const understood = widget.understood ?? explain.data?.query;
+  const units = useWithUnitPreference();
+  // Wait for the JSON form (when it can be had) and the preferences, so
+  // the Query runs once, with the viewer's Unit.
+  const known = !!understood || !canExplain || explain.isError;
+  const text = units.ready && known ? viewerText(widget.text, understood, units.apply) : "";
+  const result = useWidgetResult(text, understood, { live: true });
   const editing = !!onEdit;
 
   return (
@@ -98,6 +105,20 @@ export function WidgetCard({ widget, problem, onEdit, onRemove }: WidgetCardProp
       </WidgetBody>
     </section>
   );
+}
+
+// viewerText is the Widget's Query as this viewer runs it: one that
+// names no Unit gets the viewer's Unit preference for its Metric's
+// Quantity kind. Only when running, never in the saved Query, so a shared
+// Dashboard shows each viewer their own Units.
+function viewerText(
+  text: string,
+  understood: Query | undefined,
+  apply: (text: string, metric?: string) => string,
+): string {
+  if (!understood || understood.source !== "measurements" || understood.unit !== "") return text;
+  const metrics = understood.filters.find((filter) => filter.field === "metric")?.values ?? [];
+  return apply(text, metrics.length === 1 ? metrics[0] : undefined);
 }
 
 // WidgetBody measures the space under the header, so charts and maps can

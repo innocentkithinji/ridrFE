@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
 // Dashboards (/dashboards) against the demo data: the demo simulator keeps
 // "Demo medicine fridge 1" reporting temperature, trains 265 and 266
@@ -137,4 +137,58 @@ test("a name is checked before sending", async ({ page }) => {
 test("a Dashboard that doesn't exist says so", async ({ page }) => {
   await page.goto("/dashboards/00000000-0000-4000-8000-00000000dead");
   await expect(page.getByText("This Dashboard doesn't exist, or isn't yours to see.")).toBeVisible();
+});
+
+const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
+const adminToken = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
+const editorToken = "dev-editor-token";
+
+async function call(request: APIRequestContext, path: string, data: object, token: string) {
+  const response = await request.post(`${api}/ridr.v1.${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data,
+  });
+  expect(response.ok(), `${path}: ${await response.text()}`).toBe(true);
+  return response.json();
+}
+
+test("a shared Dashboard shows each viewer their own Units, without changing the saved Query", async ({
+  page,
+  request,
+}) => {
+  // The dev editor (editor@localhost) prefers °F; the dev admin owns and
+  // shares the Dashboard.
+  // Inviting a user who is already a member is refused; that's fine.
+  await request.post(`${api}/ridr.v1.AccessService/InviteUser`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+    data: { email: "editor@localhost", role: "ROLE_EDITOR" },
+  });
+  await call(request, "AccessService/GetMe", {}, editorToken);
+  await call(request, "PreferenceService/SetUnitPreference", { quantityKind: "temperature", unit: "[degF]" }, editorToken);
+  const text = `${fridge} | range last 15m`;
+  const { dashboard } = await call(
+    request,
+    "DashboardService/CreateDashboard",
+    {
+      name: unique("Units per viewer"),
+      widgets: [{ title: "Fridge", visualization: "table", query: { text }, layout: { x: 0, y: 0, width: 6, height: 4 } }],
+    },
+    adminToken,
+  );
+  await call(request, "DashboardService/ShareDashboard", { dashboardId: dashboard.id, shared: true }, adminToken);
+
+  try {
+    await page.route(`${api}/**`, (route) =>
+      route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${editorToken}` } }),
+    );
+    await page.goto(`/dashboards/${dashboard.id}`);
+    const table = widget(page, "Fridge").getByRole("table");
+    await expect(table.getByRole("cell", { name: /°F$/ }).first()).toBeVisible();
+    await expect(table.getByRole("cell", { name: /°C$/ })).toHaveCount(0);
+
+    const saved = await call(request, "DashboardService/GetDashboard", { dashboardId: dashboard.id }, adminToken);
+    expect(saved.dashboard.widgets[0].query.text).toBe(text);
+  } finally {
+    await call(request, "PreferenceService/ClearUnitPreference", { quantityKind: "temperature" }, editorToken);
+  }
 });
