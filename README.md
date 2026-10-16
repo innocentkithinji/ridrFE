@@ -51,6 +51,7 @@ dev token.
 | `npm run lint` | oxlint; warnings fail |
 | `npm run build` | type-check, then a production build (needs the Clerk key or a named dev token) |
 | `npm run test:e2e` | Playwright against the running local stack |
+| `npm run test:e2e:worker` | builds for the local stack, then checks deep links on the build served by `wrangler dev`, as Cloudflare serves it |
 
 Run `npx playwright install chromium` once. Tests start their own dev
 server on `PORT` (default 5173) or reuse one already there. They cover
@@ -92,6 +93,39 @@ first: the demo signs in with the dev token, which Clerk turns off.
    signs in with the dev token, and the network tab shows no request
    for Clerk's code.
 
+## CI and deploying
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull
+request and push to `main`: it checks out this repo and
+`innocentkithinji/ridr` side by side
+([ADR 0002](docs/adr/0002-sdk-from-sibling-checkout.md)), builds
+`@ridr/web`, type-checks, lints and builds the app, starts the stack
+with `make up && make demo`, and runs Playwright twice: against the dev
+server, and against the production build served by `wrangler dev`. On
+`main` it then builds with the settings below and runs
+`wrangler deploy`.
+
+The app deploys as a Worker with static assets and no Worker script
+([`wrangler.jsonc`](wrangler.jsonc)). Any URL that is not a file gets
+`index.html` (`not_found_handling = "single-page-application"`), so
+deep links such as `/assets/<id>` load. `npx wrangler deploy --dry-run`
+after a build checks the packaging without credentials.
+
+Set these under the GitHub repo's **Settings → Secrets and variables →
+Actions**:
+
+| Name | Kind | Used by | What |
+|---|---|---|---|
+| `RIDR_REPO_TOKEN` | secret | both jobs | Fine-grained token with read-only **Contents** on `innocentkithinji/ridr`, which is private |
+| `CLOUDFLARE_API_TOKEN` | secret | deploy | Cloudflare API token from the **Edit Cloudflare Workers** template, scoped to one account |
+| `CLOUDFLARE_ACCOUNT_ID` | secret | deploy | The Cloudflare account the Worker `ridr-web` deploys to |
+| `VITE_CLERK_PUBLISHABLE_KEY` | secret | deploy | Clerk publishable key (`pk_live_…`) the deployed app signs in with |
+| `VITE_RIDR_API_URL` | variable | deploy | The Ridr API's public URL; its CORS origins must include the deployed site |
+
+The deploy job fails before building if either `VITE_` setting is
+missing. The checks job needs none of them but `RIDR_REPO_TOKEN`: it
+builds for the stack it starts, with the dev token.
+
 ## Layout
 
 Feature folders, as in the backend's
@@ -124,6 +158,8 @@ src/
   config/env.ts         VITE_ settings
   config/sign-in.ts     why a production build may not go out (read by vite.config.ts)
 e2e/                    Playwright tests, one file per feature
+wrangler.jsonc          Cloudflare: the build in dist/ as static assets, SPA fallback
+.github/workflows/      CI and deploy
 ```
 
 ## Adding a feature
