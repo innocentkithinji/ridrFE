@@ -1,6 +1,7 @@
 import { createBrowserRouter, Outlet, RouterProvider, type RouteObject } from "react-router";
 import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
+import { AssetsRoute } from "@/app/routes/assets";
 import { HomeRoute } from "@/app/routes/home";
 import { NotFoundRoute } from "@/app/routes/not-found";
 import { TestOnlyGatedRoute, testOnlyPath } from "@/app/routes/test-only";
@@ -11,6 +12,7 @@ import { AppShell } from "@/components/layout/app-shell";
 // (the same one as its nav link in nav.ts).
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
+  { path: "assets", element: <AssetsRoute /> },
   ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),
   { path: "*", element: <NotFoundRoute /> },
 ];

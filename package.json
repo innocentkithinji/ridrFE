@@ -22,6 +22,7 @@
     "@ridr/web": "file:../Ridr/sdk/web",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-query": "5.104.3",
+    "@tanstack/react-virtual": "3.14.13",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.58.0",

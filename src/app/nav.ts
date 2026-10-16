@@ -1,3 +1,5 @@
+import { Boxes } from "lucide-react";
+import { assetsPermission } from "@/app/routes/assets";
 import type { NavGroup } from "@/components/layout/nav-types";
 import { testOnlyNav } from "@/app/routes/test-only";
 
@@ -11,7 +13,7 @@ export const nav: NavGroup[] = [
   },
   {
     label: "Fleet", // Assets, Unclaimed devices
-    items: [],
+    items: [{ label: "Assets", to: "/assets", icon: Boxes, permission: assetsPermission }],
   },
   {
     label: "Alerting", // Rules, Silences, Contact groups
