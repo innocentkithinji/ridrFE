@@ -14,6 +14,16 @@ export const listIngestKeysKey = createConnectQueryKey({
   cardinality: undefined,
 });
 
+export const listMqttBridgesKey = createConnectQueryKey({
+  schema: ConnectorService.method.listMqttBridges,
+  cardinality: undefined,
+});
+
+export const getMqttBridgeKey = createConnectQueryKey({
+  schema: ConnectorService.method.getMqttBridge,
+  cardinality: undefined,
+});
+
 export const adapterServiceKey = createConnectQueryKey({
   schema: AdapterService,
   cardinality: undefined,

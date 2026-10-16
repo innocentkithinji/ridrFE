@@ -40,7 +40,8 @@ async function withoutPermissions(page: Page, drop: (p: string) => boolean) {
 const adminOnly = (p: string) =>
   /AdapterService\/(RegisterAdapter|RetireAdapter|CreateIngestKey|ListIngestKeys|RevokeIngestKey)$/.test(
     p,
-  );
+  ) ||
+  /ConnectorService\/(SetMapping|PreviewMapping|ListRawPayloads)$/.test(p);
 
 test("lists every Adapter oldest first, retired ones marked, with the Agent guide linked", async ({
   page,

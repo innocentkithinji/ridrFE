@@ -69,3 +69,12 @@ export function attributeProblems(
 export function hasAttributeProblems(problems: AttributeProblem[]): boolean {
   return problems.some((problem) => problem.key || problem.value);
 }
+
+// holdsEvery tells whether attributes hold every key=value pair of a
+// selector, as Ridr matches Silences and Rules to Assets.
+export function holdsEvery(
+  attributes: Record<string, string>,
+  selector: Record<string, string>,
+): boolean {
+  return Object.entries(selector).every(([key, value]) => attributes[key] === value);
+}

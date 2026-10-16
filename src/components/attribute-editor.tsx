@@ -19,6 +19,8 @@ type AttributeEditorProps = {
   // Show every problem, as after a save attempt. Before that only a key
   // with characters Ridr refuses is flagged, as it is typed.
   showAllProblems: boolean;
+  // What the rows are, such as "Selector"; "Attributes" by default.
+  legend?: string;
 };
 
 const selectClass =
@@ -28,7 +30,7 @@ const selectClass =
 // suggest the Controlled keys; a Controlled key's value is a picker of
 // its allowed values.
 export function AttributeEditor(props: AttributeEditorProps) {
-  const { rows, onChange, controlledKeys, showAllProblems } = props;
+  const { rows, onChange, controlledKeys, showAllProblems, legend = "Attributes" } = props;
   const listId = useId();
   const problems = attributeProblems(rows, controlledKeys);
 
@@ -37,7 +39,7 @@ export function AttributeEditor(props: AttributeEditorProps) {
 
   return (
     <fieldset className="space-y-2">
-      <legend className="mb-1 text-sm font-medium">Attributes</legend>
+      <legend className="mb-1 text-sm font-medium">{legend}</legend>
       <datalist id={listId}>
         {controlledKeys.map((controlled) => (
           <option key={controlled.key} value={controlled.key} />

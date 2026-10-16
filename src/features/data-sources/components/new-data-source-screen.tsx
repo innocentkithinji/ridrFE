@@ -5,7 +5,12 @@ import { SecretDialog } from "@/components/secret-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AgentGuide } from "@/components/agent-guide/agent-guide";
+import { CreateMqttBridgeForm } from "@/features/data-sources/components/mqtt-bridge-form";
 import { useRegisterAdapter } from "@/features/data-sources/api/register-adapter";
+import {
+  HostedMqttConnectorForm,
+  WebhookConnectorForm,
+} from "@/features/data-sources/components/connector-forms";
 import { Field } from "@/features/data-sources/components/section";
 import { parseDeviceIds } from "@/features/data-sources/devices";
 import { adapterPath, dataSourcesPath } from "@/features/data-sources/paths";
@@ -22,6 +27,24 @@ const kinds: Kind[] = [
     label: "Adapter (for an Agent)",
     description: "A program you run yourself pushes Readings with the Ridr SDK and an Ingest key.",
     form: RegisterAdapterForm,
+  },
+  {
+    id: "webhook",
+    label: "Webhook connector",
+    description: "A vendor cloud POSTs payloads to a URL Ridr gives you; a Mapping turns them into Readings.",
+    form: WebhookConnectorForm,
+  },
+  {
+    id: "hosted-mqtt",
+    label: "Hosted MQTT connector",
+    description: "Devices publish to Ridr's own MQTT broker; a Mapping turns their payloads into Readings.",
+    form: HostedMqttConnectorForm,
+  },
+  {
+    id: "mqtt-bridge",
+    label: "MQTT bridge",
+    description: "Ridr subscribes to a topic on an MQTT broker elsewhere and keeps what arrives.",
+    form: CreateMqttBridgeForm,
   },
 ];
 

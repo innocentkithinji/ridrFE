@@ -6,6 +6,8 @@ import { useAdapter } from "@/features/data-sources/api/get-adapters";
 import { RetiredBadge } from "@/features/data-sources/components/format";
 import { IngestKeysSection } from "@/features/data-sources/components/ingest-keys-section";
 import { ManifestsSection } from "@/features/data-sources/components/manifests-section";
+import { MappingSection } from "@/features/data-sources/components/mapping-section";
+import { MqttBridgeSection } from "@/features/data-sources/components/mqtt-bridge-section";
 import { RawPayloadsSection } from "@/features/data-sources/components/raw-payloads-section";
 import { RetireSection } from "@/features/data-sources/components/retire-section";
 import { dataSourcesPath } from "@/features/data-sources/paths";
@@ -18,8 +20,10 @@ export type AdapterSectionProps = { adapter: Adapter; retired: boolean };
 // editor, Raw payloads, Reprocessing and Corrections go in here, before
 // retiring.
 const sections: ComponentType<AdapterSectionProps>[] = [
+  MqttBridgeSection,
   IngestKeysSection,
   ManifestsSection,
+  MappingSection,
   RawPayloadsSection,
   RetireSection,
 ];

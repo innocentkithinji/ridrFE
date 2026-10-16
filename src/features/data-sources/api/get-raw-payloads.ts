@@ -19,11 +19,12 @@ export function useRawPayloads(
 
 // useNewestRawPayload is the Connector's newest Raw payload, or
 // undefined once loaded when it has received none: the Mapping editor's
-// default sample and the source of its topic levels.
-export function useNewestRawPayload(adapterId: string) {
+// default sample and the source of its topic levels. Pass enabled false
+// for users without ListRawPayloads.
+export function useNewestRawPayload(adapterId: string, options: { enabled?: boolean } = {}) {
   return useQuery(
     ConnectorService.method.listRawPayloads,
     { adapterId, onlyProblems: false, limit: 1 },
-    { select: (data) => data.rawPayloads[0] },
+    { select: (data) => data.rawPayloads[0], enabled: options.enabled },
   );
 }
