@@ -6,6 +6,7 @@ import { useAdapter } from "@/features/data-sources/api/get-adapters";
 import { RetiredBadge } from "@/features/data-sources/components/format";
 import { IngestKeysSection } from "@/features/data-sources/components/ingest-keys-section";
 import { ManifestsSection } from "@/features/data-sources/components/manifests-section";
+import { MappingSection } from "@/features/data-sources/components/mapping-section";
 import { RawPayloadsSection } from "@/features/data-sources/components/raw-payloads-section";
 import { RetireSection } from "@/features/data-sources/components/retire-section";
 import { dataSourcesPath } from "@/features/data-sources/paths";
@@ -20,6 +21,7 @@ export type AdapterSectionProps = { adapter: Adapter; retired: boolean };
 const sections: ComponentType<AdapterSectionProps>[] = [
   IngestKeysSection,
   ManifestsSection,
+  MappingSection,
   RawPayloadsSection,
   RetireSection,
 ];

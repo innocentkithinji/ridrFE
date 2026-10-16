@@ -122,7 +122,10 @@ test("Newest N asks for that many, 100 by default", async ({ page, request }) =>
 
   const limits: number[] = [];
   page.on("request", (r) => {
-    if (r.url().endsWith("/ListRawPayloads")) limits.push(r.postDataJSON()?.limit);
+    // The Mapping editor asks for the newest one on its own.
+    if (r.url().endsWith("/ListRawPayloads") && r.postDataJSON()?.limit !== 1) {
+      limits.push(r.postDataJSON()?.limit);
+    }
   });
   await page.goto(`/settings/data-sources/${hook.adapter.id}`);
   const section = rawPayloads(page);
