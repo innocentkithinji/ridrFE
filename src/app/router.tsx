@@ -5,6 +5,7 @@ import { AgentGuideRoute } from "@/app/routes/agent-guide";
 import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
 import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
 import { AssetsRoute, assetsPath } from "@/app/routes/assets";
+import { ContactGroupsRoute, contactGroupsPath } from "@/app/routes/contact-groups";
 import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
 import { HomeRoute } from "@/app/routes/home";
 import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
@@ -23,6 +24,7 @@ import { AppShell } from "@/components/layout/app-shell";
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
   { path: assetsPath, element: <AssetsRoute /> },
+  { path: contactGroupsPath, element: <ContactGroupsRoute /> },
   { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
