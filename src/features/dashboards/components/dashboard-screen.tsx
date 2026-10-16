@@ -1,4 +1,4 @@
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { DashboardService, type Dashboard, type QueryProblem } from "@ridr/web";
 import { Pencil, Plus } from "lucide-react";
 import { useId, useMemo, useState } from "react";
@@ -7,8 +7,10 @@ import { FormError } from "@/components/form-error";
 import { ErrorState, Loading, NotFound, PermissionDenied } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useSaveDashboard } from "@/features/dashboards/api/change-dashboard";
+import { useSaveDashboard, useShareDashboard } from "@/features/dashboards/api/change-dashboard";
 import { useDashboard } from "@/features/dashboards/api/get-dashboards";
+import { DeleteDashboard, ShareButton } from "@/features/dashboards/components/dashboard-actions";
+import { EarlierVersionBanner, VersionHistory } from "@/features/dashboards/components/dashboard-history";
 import { WidgetCard } from "@/features/dashboards/components/widget-card";
 import { WidgetFormDialog, type WidgetFields } from "@/features/dashboards/components/widget-form";
 import { WidgetGrid } from "@/features/dashboards/components/widget-grid";
@@ -32,9 +34,10 @@ import { Can, useIsScoped, useMe } from "@/lib/me";
 export type DashboardLocationState = { editing?: boolean };
 
 // DashboardScreen is /dashboards/:dashboardId: one Dashboard's Widgets at
-// their layout, and edit mode for editors.
-export function DashboardScreen({ dashboardId }: { dashboardId: string }) {
-  const dashboard = useDashboard(dashboardId);
+// their layout, and edit mode for editors. A `version` other than 0 shows
+// that earlier version read-only.
+export function DashboardScreen({ dashboardId, version }: { dashboardId: string; version: number }) {
+  const dashboard = useDashboard(dashboardId, version);
   const startEditing = !!(useLocation().state as DashboardLocationState | null)?.editing;
 
   if (dashboard.isPending) return <Loading what="the Dashboard" />;
@@ -46,22 +49,52 @@ export function DashboardScreen({ dashboardId }: { dashboardId: string }) {
     return <ErrorState error={dashboard.error} />;
   }
   const loaded = dashboard.data.dashboard!;
-  return <DashboardView dashboard={loaded} startEditing={startEditing} />;
+  if (version > 0) return <EarlierVersion dashboard={loaded} />;
+  const reload = async () => (await dashboard.refetch()).data?.dashboard;
+  return <DashboardView dashboard={loaded} startEditing={startEditing} reload={reload} />;
 }
 
+// EarlierVersion shows one earlier version as it was, read-only.
+function EarlierVersion({ dashboard }: { dashboard: Dashboard }) {
+  const widgets = useMemo(() => draftsOf(dashboard.widgets), [dashboard.widgets]);
+  return (
+    <div className="flex flex-col gap-4">
+      <EarlierVersionBanner dashboard={dashboard} />
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{dashboard.name}</h1>
+        <DashboardFacts dashboard={dashboard} />
+      </header>
+      <ScopeNote shared={dashboard.shared} />
+      <Widgets widgets={widgets} />
+    </div>
+  );
+}
+
+function Widgets({ widgets }: { widgets: WidgetDraft[] }) {
+  if (widgets.length === 0) return <p className="text-muted-foreground py-8 text-center text-sm">No widgets.</p>;
+  return <WidgetGrid widgets={widgets} render={(widget) => <WidgetCard widget={widget} />} />;
+}
+
+// Reload fetches the Dashboard's latest version again.
+type Reload = () => Promise<Dashboard | undefined>;
+
 // Draft is a Dashboard being edited: kept apart from the saved one until
-// a save succeeds, so a failed save loses nothing.
-type Draft = { name: string; widgets: WidgetDraft[] };
+// a save succeeds, so a failed save loses nothing. `baseVersion` is the
+// version the edit started from, kept even when a newer one loads.
+type Draft = { name: string; widgets: WidgetDraft[]; baseVersion: number };
 
 // SaveProblem marks the Widget a failed save's QueryProblem was about,
 // while its text is still the one that was sent.
 type SaveProblem = { key: string; text: string; problem: QueryProblem };
 
-function DashboardView({ dashboard, startEditing }: { dashboard: Dashboard; startEditing: boolean }) {
+type DashboardViewProps = { dashboard: Dashboard; startEditing: boolean; reload: Reload };
+
+function DashboardView({ dashboard, startEditing, reload }: DashboardViewProps) {
   const saved = useMemo(() => draftsOf(dashboard.widgets), [dashboard.widgets]);
-  const [draft, setDraft] = useState<Draft | null>(() =>
-    startEditing ? { name: dashboard.name, widgets: saved } : null,
-  );
+  const edit = (): Draft => ({ name: dashboard.name, widgets: saved, baseVersion: dashboard.version });
+  const [draft, setDraft] = useState<Draft | null>(() => (startEditing ? edit() : null));
+  const share = useShareDashboard();
+  const shareErrorId = useId();
 
   return (
     <div className="flex flex-col gap-4">
@@ -71,6 +104,7 @@ function DashboardView({ dashboard, startEditing }: { dashboard: Dashboard; star
           draft={draft}
           onChange={setDraft}
           onDone={() => setDraft(null)}
+          reload={reload}
         />
       ) : (
         <>
@@ -79,19 +113,22 @@ function DashboardView({ dashboard, startEditing }: { dashboard: Dashboard; star
               <h1 className="text-2xl font-semibold tracking-tight">{dashboard.name}</h1>
               <DashboardFacts dashboard={dashboard} />
             </div>
-            {/* #22 adds version history, Share (owner only) and Delete here. */}
-            <Can method={DashboardService.method.saveDashboard}>
-              <Button variant="outline" onClick={() => setDraft({ name: dashboard.name, widgets: saved })}>
-                <Pencil /> Edit
-              </Button>
-            </Can>
+            <div className="flex flex-wrap gap-2">
+              <Can method={DashboardService.method.listDashboardVersions}>
+                <VersionHistory dashboardId={dashboard.id} />
+              </Can>
+              <ShareButton dashboard={dashboard} share={share} />
+              <DeleteDashboard dashboard={dashboard} />
+              <Can method={DashboardService.method.saveDashboard}>
+                <Button variant="outline" onClick={() => setDraft(edit())}>
+                  <Pencil /> Edit
+                </Button>
+              </Can>
+            </div>
           </header>
+          <FormError id={shareErrorId} error={share.error} />
           <ScopeNote shared={dashboard.shared} />
-          {saved.length === 0 ? (
-            <p className="text-muted-foreground py-8 text-center text-sm">No widgets.</p>
-          ) : (
-            <WidgetGrid widgets={saved} render={(widget) => <WidgetCard widget={widget} />} />
-          )}
+          <Widgets widgets={saved} />
         </>
       )}
     </div>
@@ -125,13 +162,15 @@ type DashboardEditorProps = {
   draft: Draft;
   onChange: (draft: Draft) => void;
   onDone: () => void;
+  reload: Reload;
 };
 
 // DashboardEditor is edit mode: rename, add, change, remove, drag and
 // resize Widgets, then save them all as a new version.
-function DashboardEditor({ dashboard, draft, onChange, onDone }: DashboardEditorProps) {
+function DashboardEditor({ dashboard, draft, onChange, onDone, reload }: DashboardEditorProps) {
   const save = useSaveDashboard();
   const [checked, setChecked] = useState(false);
+  const [conflict, setConflict] = useState(false);
   const [saveProblem, setSaveProblem] = useState<SaveProblem | null>(null);
   const [form, setForm] = useState<{ open: boolean; key: string | null }>({ open: false, key: null });
   const nameId = useId();
@@ -141,32 +180,38 @@ function DashboardEditor({ dashboard, draft, onChange, onDone }: DashboardEditor
   const problemOf = (widget: WidgetDraft) =>
     saveProblem && saveProblem.key === widget.key && saveProblem.text === widget.text ? saveProblem.problem : null;
   const localProblem = checked ? (nameProblem(draft.name) ?? widgetsProblem(draft.widgets)) : null;
-  // A QueryProblem marks its Widget; any other refusal shows above the grid.
-  const otherError = save.error && !queryProblemOf(save.error) ? save.error : null;
+  // A QueryProblem marks its Widget and a conflict has its own banner; any
+  // other refusal shows above the grid.
+  const otherError = save.error && !queryProblemOf(save.error) && !conflict ? save.error : null;
 
   const setWidgets = (widgets: WidgetDraft[]) => onChange({ ...draft, widgets });
 
-  const onSave = async () => {
+  // onSave saves the draft as a new version on top of `baseVersion`.
+  const onSave = async (baseVersion = draft.baseVersion) => {
     setChecked(true);
     if (nameProblem(draft.name) || widgetsProblem(draft.widgets)) return;
     setSaveProblem(null);
+    setConflict(false);
     const sent = draft.widgets;
     try {
       await save.mutateAsync({
         dashboardId: dashboard.id,
-        baseVersion: dashboard.version,
+        baseVersion,
         name: draft.name.trim(),
         widgets: widgetsOf(sent),
       });
       onDone();
     } catch (error) {
+      if (ConnectError.from(error).code === Code.FailedPrecondition) {
+        setConflict(true);
+        return;
+      }
       const problem = queryProblemOf(error);
       const index = widgetIndexOf(problem);
       if (problem && index !== null && sent[index]) {
         setSaveProblem({ key: sent[index].key, text: sent[index].text, problem });
       }
-      // Any other refusal shows as the save's error. FailedPrecondition
-      // (someone saved a newer version) gets its conflict banner in #22.
+      // Any other refusal shows as the save's error.
     }
   };
 
@@ -227,11 +272,24 @@ function DashboardEditor({ dashboard, draft, onChange, onDone }: DashboardEditor
           <Button variant="outline" onClick={onDone} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button onClick={onSave} disabled={save.isPending}>
+          <Button onClick={() => void onSave()} disabled={save.isPending}>
             {save.isPending ? "Saving…" : "Save"}
           </Button>
         </div>
       </header>
+      {conflict && (
+        <ConflictBanner
+          busy={save.isPending}
+          onReload={() => {
+            onDone();
+            void reload();
+          }}
+          onSaveOnTop={async () => {
+            const latest = await reload();
+            if (latest) await onSave(latest.version);
+          }}
+        />
+      )}
       <FormError id={`${problemId}-save`} error={otherError} />
       {draft.widgets.length >= widgetLimit && (
         <p className="text-muted-foreground text-sm">A Dashboard holds at most {widgetLimit} widgets.</p>
@@ -262,5 +320,34 @@ function DashboardEditor({ dashboard, draft, onChange, onDone }: DashboardEditor
         onDone={onWidgetDone}
       />
     </>
+  );
+}
+
+type ConflictBannerProps = { busy: boolean; onReload: () => void; onSaveOnTop: () => Promise<void> };
+
+// ConflictBanner shows when someone saved a newer version while the user
+// edited. The edit stays until they choose: reload the newer version and
+// lose the edit, or save the edit on top of it.
+function ConflictBanner({ busy, onReload, onSaveOnTop }: ConflictBannerProps) {
+  return (
+    <div
+      role="alert"
+      className="border-destructive/50 flex flex-wrap items-center justify-between gap-3 rounded-md border px-4 py-3"
+    >
+      <div className="flex flex-col gap-0.5 text-sm">
+        <p className="font-medium">Someone saved a newer version</p>
+        <p className="text-muted-foreground">
+          Reload it to see their changes (your edit is lost), or save your edit on top of it.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={onReload} disabled={busy}>
+          Reload
+        </Button>
+        <Button onClick={() => void onSaveOnTop()} disabled={busy}>
+          Save on top
+        </Button>
+      </div>
+    </div>
   );
 }
