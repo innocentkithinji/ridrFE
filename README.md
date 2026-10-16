@@ -168,6 +168,13 @@ wrangler.jsonc          Cloudflare: the build in dist/ as static assets, SPA fal
    `useMutation` per procedure over the generated `@ridr/web` method, with
    the cache keys and invalidations its feature page names. Only `api/`
    files call Ridr.
+   A live view (Readings that keep arriving) uses
+   `useLiveQuery(text)` from `@/lib/use-live-query` instead: it fills the
+   same cache entry `RunQuery` would and reports a `status`; pass its
+   `query` to `QueryView`. Draw Measurements over time with
+   `<TimeSeriesChart series={measurementSeries(data.readings)} label="…" />`
+   from `@/components/charts`. The dev server's `/dev/live-query` charts
+   any Query live.
 2. **Screens** in `src/features/<feature>/components/`. Show
    `Loading`, `ErrorState`, `Empty` or `QueryView` from
    `@/components/states`; hide actions the user may not take with
