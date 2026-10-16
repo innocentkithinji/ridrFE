@@ -10,8 +10,14 @@ import {
   NewDataSourceRoute,
   newDataSourcePath,
 } from "@/app/routes/data-sources";
+import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
+import { AssetsRoute, assetsPath } from "@/app/routes/assets";
+import { ContactGroupsRoute, contactGroupsPath } from "@/app/routes/contact-groups";
+import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
 import { HomeRoute } from "@/app/routes/home";
+import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
 import { NotFoundRoute } from "@/app/routes/not-found";
+import { TeamRoute, teamPath } from "@/app/routes/team";
 import {
   TestOnlyAgentGuideRoute,
   testOnlyAgentGuidePath,
@@ -25,11 +31,21 @@ import { AppShell } from "@/components/layout/app-shell";
 // (the same one as its nav link in nav.ts).
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
+  { path: assetsPath, element: <AssetsRoute /> },
+  { path: contactGroupsPath, element: <ContactGroupsRoute /> },
+  { path: catalogPath, element: <CatalogRoute /> },
+  { path: controlledKeysPath, element: <ControlledKeysRoute /> },
+  { path: teamPath, element: <TeamRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
   { path: dataSourcesPath, element: <DataSourcesRoute /> },
   { path: newDataSourcePath, element: <NewDataSourceRoute /> },
   { path: `${dataSourcesPath}/:adapterId`, element: <AdapterRoute /> },
-  ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),
+  ...(import.meta.env.DEV
+    ? [
+        { path: testOnlyPath, element: <TestOnlyGatedRoute /> },
+        { path: liveQueryDevPath, element: <LiveQueryDevRoute /> },
+      ]
+    : []),
   { path: "*", element: <NotFoundRoute /> },
 ];
 
