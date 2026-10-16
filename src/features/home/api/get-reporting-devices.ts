@@ -1,7 +1,7 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { QueryService } from "@ridr/web";
 import { textQuery } from "@/lib/use-live-query";
-import { healthRefetchMs } from "@/features/home/api/polling";
+import { healthRefetchMs } from "@/lib/api/registry";
 
 // One row per Device with a Measurement in the last 15 minutes: the same
 // line GetDeviceHealth draws between live and silent.

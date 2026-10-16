@@ -1,7 +1,7 @@
 import { createQueryOptions, useTransport } from "@connectrpc/connect-query";
 import { RegistryService, type Asset } from "@ridr/web";
 import { useQueries } from "@tanstack/react-query";
-import { healthRefetchMs } from "@/features/home/api/polling";
+import { healthRefetchMs } from "@/lib/api/registry";
 
 // AssetDevice is a Device reporting for an Asset now.
 export type AssetDevice = { deviceId: string; asset: Asset };

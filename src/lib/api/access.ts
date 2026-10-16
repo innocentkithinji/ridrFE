@@ -10,9 +10,3 @@ export function useMembers() {
   const allowed = useCan(AccessService.method.listMembers);
   return useQuery(AccessService.method.listMembers, {}, { enabled: allowed });
 }
-
-// useInvitations lists pending invitations; a scoped admin sees only
-// those whose Scope lies inside their own.
-export function useInvitations() {
-  return useQuery(AccessService.method.listInvitations);
-}

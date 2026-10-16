@@ -1,6 +1,6 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { AlertService } from "@ridr/web";
-import { alertsPollMs } from "@/features/alerts/api/polling";
+import { alertsPollMs } from "@/lib/api/alerts";
 
 // The most Alerts ListAlerts returns; older ones can't be opened.
 const newestAlerts = 1000;

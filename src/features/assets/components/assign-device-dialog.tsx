@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useAssets } from "@/features/assets/api/get-assets";
+import { useAssets } from "@/lib/api/registry";
 import { useAssignDevice } from "@/features/assets/api/change-assignment";
 import { now, timestampOf, WhenField, whenProblem, type When } from "@/features/assets/components/when-field";
 import { messageFor } from "@/lib/errors";

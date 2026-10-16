@@ -8,14 +8,15 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { TrackMap } from "@/components/map/track-map";
 import { ErrorState, Loading, NotFound, QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { useContactGroups } from "@/features/contact-groups/api/get-contact-groups";
+import { useContactGroups } from "@/lib/api/contact-groups";
 import {
   useDeleteRule,
   useDisableRule,
   useEnableRule,
   useUpdateRule,
 } from "@/features/rules/api/change-rule";
-import { useRule, useRuleAlerts } from "@/features/rules/api/get-rules";
+import { useRule } from "@/features/rules/api/get-rule";
+import { useAlerts } from "@/lib/api/alerts";
 import { BackToRules } from "@/features/rules/components/back-to-rules";
 import {
   draftOf,
@@ -236,7 +237,7 @@ const stateLabels: Record<AlertState, string> = {
 // RuleAlerts lists the Alerts the Rule raised, each linking to its
 // detail. New ones appear through the poll.
 function RuleAlerts({ ruleId }: { ruleId: string }) {
-  const alerts = useRuleAlerts(ruleId, { enabled: true });
+  const alerts = useAlerts({ ruleId });
   return (
     <section className="space-y-2">
       <h2 className="text-lg font-semibold">Alerts</h2>

@@ -1,7 +1,7 @@
 import { useMutation } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { CatalogService } from "@ridr/web";
-import { metricsKey } from "@/features/catalog/api/metrics";
+import { metricsKey } from "@/lib/api/catalog";
 
 // useDefineMetric adds a custom Metric, or reviews an unreviewed one by
 // giving it a Quantity kind.

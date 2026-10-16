@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Link } from "react-router";
 import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { useRules } from "@/features/rules/api/get-rules";
+import { useRules } from "@/lib/api/rules";
 import { kindOf, selectorText } from "@/features/rules/components/rule-draft";
 import { RuleStateBadge } from "@/features/rules/components/rule-state";
 import { ScopeNote } from "@/features/rules/components/scope-note";

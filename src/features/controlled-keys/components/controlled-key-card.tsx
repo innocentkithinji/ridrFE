@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { useRemoveAllowedValues } from "@/features/controlled-keys/api/change-controlled-keys";
-import { assetCount, type ValueUsage } from "@/features/controlled-keys/api/get-value-usage";
+import { assetCount, type ValueUsage } from "@/features/controlled-keys/value-usage";
 import { AddValuesForm } from "@/features/controlled-keys/components/add-values-form";
 import { FormError } from "@/components/form-error";
 import { Can, useCan } from "@/lib/me";

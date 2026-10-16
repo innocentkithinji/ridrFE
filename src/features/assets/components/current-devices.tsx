@@ -3,7 +3,7 @@ import { QueryService, RegistryService, type Assignment } from "@ridr/web";
 import { HealthBadge } from "@/components/device-health";
 import { withUnit } from "@/lib/units";
 import { Button } from "@/components/ui/button";
-import { useDeviceHealth } from "@/features/assets/api/get-device-health";
+import { useDeviceHealth } from "@/lib/api/registry";
 import { useLatestReading } from "@/features/assets/api/get-latest-reading";
 import { shownTime } from "@/features/assets/components/time";
 import { messageFor } from "@/lib/errors";

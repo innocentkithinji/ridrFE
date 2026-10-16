@@ -1,5 +1,5 @@
-import { useQuery } from "@connectrpc/connect-query";
 import { RegistryService } from "@ridr/web";
+import { useAssets } from "@/lib/api/registry";
 import { useCan } from "@/lib/me";
 
 // ValueUsage counts the Assets holding each value of each key:
@@ -12,7 +12,7 @@ export type ValueUsage = Map<string, Map<string, number>>;
 // ListAssets Permission it loads nothing and returns undefined.
 export function useValueUsage(): ValueUsage | undefined {
   const canList = useCan(RegistryService.method.listAssets);
-  const assets = useQuery(RegistryService.method.listAssets, {}, { enabled: canList });
+  const assets = useAssets({ enabled: canList });
   if (!assets.data) {
     return undefined;
   }

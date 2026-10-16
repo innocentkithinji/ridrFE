@@ -3,7 +3,7 @@ import { AlertService, AlertState, SilenceService, SilenceState, type Silence } 
 import { useMemo } from "react";
 import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { useAssets } from "@/features/assets/api/get-assets";
+import { useAssets } from "@/lib/api/registry";
 import { useEndSilence } from "@/features/silences/api/change-silence";
 import { useHeldBackAlerts } from "@/features/silences/api/get-silences";
 import { refusalMessage } from "@/lib/errors";

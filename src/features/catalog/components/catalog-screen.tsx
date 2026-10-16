@@ -1,7 +1,7 @@
 import { CatalogService, type Metric } from "@ridr/web";
 import { QueryView } from "@/components/states";
-import { sortMetrics, useMetrics } from "@/features/catalog/api/metrics";
-import { quantityKindsOf, useUnits } from "@/features/catalog/api/units";
+import { sortMetrics, useMetrics } from "@/lib/api/catalog";
+import { quantityKindsOf, useUnits } from "@/lib/api/catalog";
 import { DefineMetricForm } from "@/features/catalog/components/define-metric-form";
 import { ReviewMetric } from "@/features/catalog/components/review-metric";
 import { UnitsSection } from "@/features/catalog/components/units-section";

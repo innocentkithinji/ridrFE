@@ -9,7 +9,7 @@ import { TrackMap } from "@/components/map/track-map";
 import { locationTracks } from "@/components/map/tracks";
 import { Button } from "@/components/ui/button";
 import { QueryService } from "@ridr/web";
-import { useExplainQuery } from "@/features/dashboards/api/explain-query";
+import { useExplainQuery } from "@/lib/api/query";
 import { useWidgetResult } from "@/features/dashboards/api/widget-result";
 import { EventsList } from "@/features/dashboards/components/events-list";
 import { StatView } from "@/features/dashboards/components/stat-view";

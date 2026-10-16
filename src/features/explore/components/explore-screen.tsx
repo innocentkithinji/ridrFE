@@ -7,9 +7,10 @@ import { QueryEditor } from "@/components/query-editor/query-editor";
 import { Empty, ErrorState, Loading, PermissionDenied } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useExplainQuery } from "@/features/explore/api/explain-query";
+import { useExplainQuery } from "@/lib/api/query";
 import { useRunQuery } from "@/features/explore/api/run-query";
-import { useAssets, useMetrics, useUnits } from "@/features/explore/api/vocabulary";
+import { useMetrics, useUnits } from "@/lib/api/catalog";
+import { useAssets, vocabularyStaleTime } from "@/lib/api/registry";
 import { viewsFor } from "@/features/explore/components/result-views";
 import { UnderstoodForm } from "@/features/explore/components/understood-form";
 import { refreshPlan, type RefreshPlan } from "@/lib/refresh-plan";
@@ -150,7 +151,7 @@ function useDraft(text: string, example: string) {
 // from the lists the user may read.
 function useVocabulary() {
   const metrics = useMetrics({ enabled: useCan(CatalogService.method.listMetrics) });
-  const assets = useAssets({ enabled: useCan(RegistryService.method.listAssets) });
+  const assets = useAssets({ enabled: useCan(RegistryService.method.listAssets), staleTime: vocabularyStaleTime });
   return {
     metrics: metrics.data?.metrics.map((metric) => metric.name),
     assets: assets.data?.assets.map((asset) => asset.name),

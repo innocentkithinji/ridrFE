@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json",
-    "lint": "oxlint --deny-warnings",
+    "lint": "oxlint --deny-warnings && node scripts/check-feature-imports.mjs",
     "test:e2e": "playwright test",
     "test:e2e:worker": "VITE_RIDR_DEV_TOKEN=dev-user-token npm run build && E2E_SERVER=worker playwright test e2e/deploy.spec.ts"
   },

@@ -1,7 +1,7 @@
 import { AlertState, type Alert } from "@ridr/web";
 import { withUnit } from "@/lib/units";
 import { QueryView } from "@/components/states";
-import { useAlerts } from "@/features/assets/api/get-alerts";
+import { useAlerts } from "@/lib/api/alerts";
 import { shownTime } from "@/features/assets/components/time";
 
 const stateLabel: Record<AlertState, string> = {

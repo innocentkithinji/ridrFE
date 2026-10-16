@@ -13,8 +13,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useAssets } from "@/features/assets/api/get-assets";
-import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
+import { useAssets } from "@/lib/api/registry";
+import { useControlledKeys } from "@/lib/api/registry";
 import { useCreateSilence } from "@/features/silences/api/change-silence";
 import { refusalMessage } from "@/lib/errors";
 import {

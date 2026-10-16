@@ -170,6 +170,7 @@ src/
     api/                one hook per procedure: get-<things>.ts, <verb>-<thing>.ts
     components/         the feature's screens and parts
   lib/                  Session, transport, query cache, useMe/useCan/permissionOf, errors, theme
+  lib/api/              hooks more than one feature uses, one file per Ridr service (registry.ts, catalog.ts…)
   config/env.ts         VITE_ settings
   config/sign-in.ts     why a production build may not go out (read by vite.config.ts)
 e2e/                    Playwright tests, one file per feature
@@ -182,7 +183,9 @@ wrangler.jsonc          Cloudflare: the build in dist/ as static assets, SPA fal
 1. **Hooks** in `src/features/<feature>/api/`: one `useQuery` or
    `useMutation` per procedure over the generated `@ridr/web` method, with
    the cache keys and invalidations its feature page names. Only `api/`
-   files call Ridr.
+   files call Ridr. A hook a second feature needs moves to
+   `src/lib/api/<service>.ts` (one file per Ridr service), never imported
+   across features: `npm run lint` fails on a feature importing another.
    A live view (Readings that keep arriving) uses
    `useLiveQuery(text)` from `@/lib/use-live-query` instead: it fills the
    same cache entry `RunQuery` would and reports a `status`; pass its

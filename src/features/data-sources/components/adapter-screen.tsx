@@ -2,7 +2,7 @@ import type { Adapter } from "@ridr/web";
 import type { ComponentType } from "react";
 import { Link } from "react-router";
 import { ErrorState, Loading, NotFound } from "@/components/states";
-import { useAdapter } from "@/features/data-sources/api/get-adapters";
+import { useAdapter } from "@/lib/api/adapters";
 import { RetiredBadge } from "@/features/data-sources/components/format";
 import { CorrectionsSection } from "@/features/data-sources/components/corrections-section";
 import { IngestKeysSection } from "@/features/data-sources/components/ingest-keys-section";

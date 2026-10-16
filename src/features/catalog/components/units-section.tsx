@@ -3,7 +3,7 @@ import {
   unitsByQuantityKind,
   type QuantityKindUnits,
   type useUnits,
-} from "@/features/catalog/api/units";
+} from "@/lib/api/catalog";
 
 // UnitsSection lists the Units Ridr knows, grouped by Quantity kind.
 export function UnitsSection({ units }: { units: ReturnType<typeof useUnits> }) {

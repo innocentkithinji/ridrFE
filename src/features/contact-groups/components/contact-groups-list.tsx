@@ -1,7 +1,7 @@
 import { Channel, ContactGroupService, RuleService, type ContactGroup, type Rule } from "@ridr/web";
 import { QueryView } from "@/components/states";
-import { useContactGroups } from "@/features/contact-groups/api/get-contact-groups";
-import { useRules } from "@/features/contact-groups/api/get-rules";
+import { useContactGroups } from "@/lib/api/contact-groups";
+import { useRules } from "@/lib/api/rules";
 import { DeleteContactGroup } from "@/features/contact-groups/components/delete-contact-group";
 import { RotateWebhookSecret } from "@/features/contact-groups/components/rotate-webhook-secret";
 import { RuleLinks } from "@/features/contact-groups/components/rule-links";

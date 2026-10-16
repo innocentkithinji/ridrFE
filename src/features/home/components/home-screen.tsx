@@ -1,7 +1,7 @@
 import { AlertService, ConnectorService, QueryService, RegistryService } from "@ridr/web";
 import type { ReactNode } from "react";
 import { DataCredit } from "@/components/data-credit";
-import { useMqttBridges } from "@/features/home/api/get-mqtt-bridges";
+import { useMqttBridges } from "@/lib/api/connectors";
 import { DeviceHealthPanel } from "@/features/home/components/device-health-panel";
 import { FleetMap } from "@/features/home/components/fleet-map";
 import { useCan, useIsScoped } from "@/lib/me";

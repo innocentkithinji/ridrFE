@@ -8,7 +8,7 @@ import {
   useSetMemberRole,
   useSetMemberScope,
 } from "@/features/team/api/change-team";
-import { useMembers } from "@/features/team/api/get-team";
+import { useMembers } from "@/lib/api/access";
 import { roleLabel, scopeText } from "@/features/team/components/describe";
 import { RolePicker } from "@/features/team/components/role-picker";
 import {

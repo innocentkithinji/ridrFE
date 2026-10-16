@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
+import { useControlledKeys } from "@/lib/api/registry";
 
 // A Scope as the editor holds it: each condition a Controlled key and
 // the values an Asset may hold for it. None means the whole Organisation.

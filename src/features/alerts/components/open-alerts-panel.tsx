@@ -1,7 +1,7 @@
 import { AlertService } from "@ridr/web";
 import { Link } from "react-router";
 import { QueryView } from "@/components/states";
-import { useOpenAlerts } from "@/features/alerts/api/get-alerts";
+import { openStates, useAlerts } from "@/lib/api/alerts";
 import { AlertsTable } from "@/features/alerts/components/alerts-table";
 import { useCan } from "@/lib/me";
 
@@ -23,7 +23,7 @@ export function OpenAlertsPanel({ assetId = "", title = "Open Alerts" }: OpenAle
 }
 
 function OpenAlerts({ assetId, title }: Required<OpenAlertsPanelProps>) {
-  const alerts = useOpenAlerts(assetId);
+  const alerts = useAlerts({ states: openStates, assetId });
   return (
     <section aria-label={title} className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
