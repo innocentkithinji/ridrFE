@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { env } from "@/config/env";
-import { CodeBlock, Placeholder } from "@/features/agent-guide/components/code-block";
-import { examples } from "@/features/agent-guide/examples";
-import { placeholders, type GuideValues } from "@/features/agent-guide/fill";
+import { CodeBlock, Placeholder } from "@/components/agent-guide/code-block";
+import { examples } from "@/components/agent-guide/examples";
+import { placeholders, type GuideValues } from "@/components/agent-guide/fill";
 
 type AgentGuideProps = {
   // The Adapter the Agent sends for. Left out, the guide shows a

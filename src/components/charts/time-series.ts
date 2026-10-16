@@ -1,5 +1,5 @@
 import { timestampMs } from "@bufbuild/protobuf/wkt";
-import type { Reading } from "@ridr/web";
+import type { Reading, RollupRow } from "@ridr/web";
 
 // TimeSeries is one line on a TimeSeriesChart: a Metric of one Device in
 // one Unit, its points oldest first. The chart knows nothing of Readings
@@ -37,21 +37,43 @@ export function measurementSeries(readings: readonly Reading[]): TimeSeries[] {
   return [...byId.values()];
 }
 
+// rollupSeries splits a rollup's rows into one TimeSeries per group,
+// function and Unit, each point at its bucket's start. Rows never mix
+// Units, so a Metric reported in Units that can't convert makes two.
+export function rollupSeries(rows: readonly RollupRow[]): TimeSeries[] {
+  const byId = new Map<string, TimeSeries>();
+  for (const row of rows) {
+    if (!row.bucketStart) continue;
+    const group = groupOf(row);
+    for (const [fn, value] of Object.entries(row.values)) {
+      const id = `${group}\u0000${fn}\u0000${row.unit}`;
+      let series = byId.get(id);
+      if (!series) {
+        series = { id, label: group ? `${group} · ${fn}` : fn, unit: row.unit, points: [] };
+        byId.set(id, series);
+      }
+      series.points.push({ time: timestampMs(row.bucketStart), value });
+    }
+  }
+  return [...byId.values()];
+}
+
+// groupOf names a rollup row's group by its grouped fields, as in
+// "Demo medicine fridge 1 · temperature"; "" when the rollup has no `by`.
+export function groupOf(row: RollupRow): string {
+  return [row.asset, row.deviceId, row.metric, ...pairs(row.attributes), ...pairs(row.tags)]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 // pointCount is how many points all series hold together.
 export function pointCount(series: readonly TimeSeries[]): number {
   return series.reduce((total, one) => total + one.points.length, 0);
 }
 
-const valueFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
-
-// withUnit writes a value with its Unit the way people read it, as in
-// "4.9 °C".
-export function withUnit(value: number, unit: string): string {
-  const shown = valueFormat.format(value);
-  return unit ? `${shown} ${unitLabel(unit)}` : shown;
-}
-
-// unitLabel shows a UCUM code the way people write it.
-export function unitLabel(unit: string): string {
-  return { Cel: "°C", "[degF]": "°F", "[kn_i]": "kn" }[unit] ?? unit;
+// pairs writes fields as key=value, by key.
+function pairs(fields: Record<string, string>): string[] {
+  return Object.entries(fields)
+    .toSorted(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`);
 }

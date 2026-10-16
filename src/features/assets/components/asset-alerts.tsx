@@ -1,5 +1,5 @@
 import { AlertState, type Alert } from "@ridr/web";
-import { withUnit } from "@/components/charts/time-series";
+import { withUnit } from "@/lib/units";
 import { QueryView } from "@/components/states";
 import { useAlerts } from "@/features/assets/api/get-alerts";
 import { shownTime } from "@/features/assets/components/time";

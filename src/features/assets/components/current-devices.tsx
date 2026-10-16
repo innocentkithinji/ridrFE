@@ -1,8 +1,9 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { DeviceHealth, QueryService, RegistryService, type Assignment } from "@ridr/web";
-import { withUnit } from "@/components/charts/time-series";
+import { withUnit } from "@/lib/units";
 import { Button } from "@/components/ui/button";
-import { useDeviceHealth, useLatestReading } from "@/features/assets/api/get-device";
+import { useDeviceHealth } from "@/features/assets/api/get-device-health";
+import { useLatestReading } from "@/features/assets/api/get-latest-reading";
 import { shownTime } from "@/features/assets/components/time";
 import { messageFor } from "@/lib/errors";
 import { useCan } from "@/lib/me";

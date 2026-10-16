@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import { unitLabel, withUnit, type TimeSeries } from "@/components/charts/time-series";
+import type { TimeSeries } from "@/components/charts/time-series";
 import { useTheme } from "@/lib/theme";
+import { unitLabel, withUnit } from "@/lib/units";
 
 // TimeSeriesChart draws TimeSeries as lines over time, on one value axis,
 // with a crosshair whose readout lists every series at the pointer, and a
@@ -174,5 +175,3 @@ const compactFormat = new Intl.NumberFormat(undefined, { notation: "compact", ma
 function compact(value: number): string {
   return compactFormat.format(value);
 }
-
-
