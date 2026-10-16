@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import type { TimeSeries } from "@/components/charts/time-series";
+import { unitLabel, withUnit, type TimeSeries } from "@/components/charts/time-series";
 import { useTheme } from "@/lib/theme";
 
 // TimeSeriesChart draws TimeSeries as lines over time, on one value axis,
@@ -170,18 +170,9 @@ function aligned(series: TimeSeries[]): uPlot.AlignedData {
 }
 
 const compactFormat = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
-const valueFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
 function compact(value: number): string {
   return compactFormat.format(value);
 }
 
-function withUnit(value: number, unit: string): string {
-  const shown = valueFormat.format(value);
-  return unit ? `${shown} ${unitLabel(unit)}` : shown;
-}
 
-// unitLabel shows a UCUM code the way people write it.
-function unitLabel(unit: string): string {
-  return { Cel: "°C", "[degF]": "°F", "[kn_i]": "kn" }[unit] ?? unit;
-}

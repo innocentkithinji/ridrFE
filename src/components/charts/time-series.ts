@@ -41,3 +41,17 @@ export function measurementSeries(readings: readonly Reading[]): TimeSeries[] {
 export function pointCount(series: readonly TimeSeries[]): number {
   return series.reduce((total, one) => total + one.points.length, 0);
 }
+
+const valueFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+
+// withUnit writes a value with its Unit the way people read it, as in
+// "4.9 °C".
+export function withUnit(value: number, unit: string): string {
+  const shown = valueFormat.format(value);
+  return unit ? `${shown} ${unitLabel(unit)}` : shown;
+}
+
+// unitLabel shows a UCUM code the way people write it.
+export function unitLabel(unit: string): string {
+  return { Cel: "°C", "[degF]": "°F", "[kn_i]": "kn" }[unit] ?? unit;
+}
