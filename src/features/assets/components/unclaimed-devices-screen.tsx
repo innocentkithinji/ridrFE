@@ -1,7 +1,8 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
-import { DeviceHealth, RegistryService, type Device } from "@ridr/web";
+import { RegistryService, type Device } from "@ridr/web";
 import { useState } from "react";
+import { HealthBadge } from "@/components/device-health";
 import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { useAdapterNames } from "@/features/assets/api/get-adapter-names";
@@ -71,7 +72,7 @@ function DeviceRow({ device, adapterName, onClaim }: DeviceRowProps) {
         <p className="font-mono font-medium">{device.deviceId}</p>
         {adapterName && <p className="text-muted-foreground text-xs">{adapterName}</p>}
       </div>
-      <Health health={device.health} />
+      <HealthBadge health={device.health} />
       <dl className="text-muted-foreground grid grid-cols-[auto_auto] gap-x-2 text-xs">
         <dt>First seen</dt>
         <dd>{timeText(device.firstSeen)}</dd>
@@ -95,26 +96,6 @@ function DeviceRow({ device, adapterName, onClaim }: DeviceRowProps) {
 
 function timeText(ts: Timestamp | undefined): string {
   return ts ? timestampDate(ts).toLocaleString() : "–";
-}
-
-const healthLabels: Record<DeviceHealth, string> = {
-  [DeviceHealth.UNSPECIFIED]: "Unknown",
-  [DeviceHealth.LIVE]: "Live",
-  [DeviceHealth.SILENT]: "Silent",
-  [DeviceHealth.NEVER_SEEN]: "Never seen",
-};
-
-function Health({ health }: { health: DeviceHealth }) {
-  const live = health === DeviceHealth.LIVE;
-  return (
-    <span className="flex items-center gap-1.5">
-      <span
-        aria-hidden
-        className={`size-2 rounded-full ${live ? "bg-emerald-500" : "bg-muted-foreground"}`}
-      />
-      {healthLabels[health]}
-    </span>
-  );
 }
 
 const valueFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });

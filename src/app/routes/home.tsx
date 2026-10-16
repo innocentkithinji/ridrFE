@@ -1,13 +1,17 @@
-import { useMe } from "@/lib/me";
+import { AdapterService } from "@ridr/web";
+import { OpenAlertsPanel } from "@/features/alerts/components/open-alerts-panel";
+import { dataSourcesPath } from "@/features/data-sources/paths";
+import { HomeScreen } from "@/features/home/components/home-screen";
+import { useCan } from "@/lib/me";
 
-// HomeRoute greets the user until the Home feature (live map, open
-// Alerts, Device health) takes this route over.
+// HomeRoute is `/`. Every panel gates itself on its own Permission, so
+// the route needs none.
 export function HomeRoute() {
-  const me = useMe();
+  const canSetUp = useCan(AdapterService.method.registerAdapter);
   return (
-    <section className="space-y-1">
-      <h1 className="text-2xl font-semibold tracking-tight">{me.tenantName}</h1>
-      <p className="text-muted-foreground">Signed in as {me.email}.</p>
-    </section>
+    <HomeScreen
+      alerts={<OpenAlertsPanel />}
+      setUpPath={canSetUp ? dataSourcesPath : undefined}
+    />
   );
 }

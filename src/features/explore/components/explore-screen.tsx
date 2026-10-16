@@ -16,6 +16,7 @@ import { refreshPlan, withUnitStage, type RefreshPlan } from "@/features/explore
 import { isRefusal, isTooCostly, queryProblemOf } from "@/lib/errors";
 import { useCan, useIsScoped } from "@/lib/me";
 import { unitLabel } from "@/lib/units";
+import { LiveStatusBadge } from "@/components/live-status";
 import { useLiveQuery, type LiveStatus } from "@/lib/use-live-query";
 
 // What the editor holds before anything has run.
@@ -211,14 +212,6 @@ function AnswerError({ error }: { error: unknown }) {
   return <ErrorState error={error} />;
 }
 
-const statusLabel: Record<LiveStatus, string> = {
-  connecting: "Connecting",
-  live: "Live",
-  reconnecting: "Reconnecting",
-  denied: "Refused",
-  failed: "Stopped",
-};
-
 type LiveControlsProps = {
   plan: Exclude<RefreshPlan, { kind: "still" }>;
   wanted: boolean;
@@ -236,13 +229,7 @@ function LiveControls({ plan, wanted, onWanted, status }: LiveControlsProps) {
         Live
       </label>
       {wanted && plan.kind === "stream" && status && (
-        <span role="status" className="inline-flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className={status === "live" ? "size-2 rounded-full bg-emerald-600" : "size-2 rounded-full bg-amber-500"}
-          />
-          {statusLabel[status]}
-        </span>
+        <LiveStatusBadge status={status} />
       )}
       {wanted && plan.kind === "refresh" && (
         <span role="status">Refreshing every {everyText(plan.everyMs)}</span>

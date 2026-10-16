@@ -151,6 +151,8 @@ src/
     query-editor/       QueryEditor: CodeMirror 6, query-language highlighting, QueryProblem markers
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types
     states.tsx          Loading, Empty, PermissionDenied, NotFound, ErrorState, QueryView
+    live-status.tsx     <LiveStatusBadge>: a Live query's status, as every live view shows it
+    device-health.tsx   <HealthBadge>: a Device's health (live, silent, never seen)
     require-permission.tsx  <RequirePermission>: a route's Permission gate
     secret-dialog.tsx   <SecretDialog>: a secret Ridr shows once (Ingest key, webhook URL…), copied, never cached
     confirm-dialog.tsx  <ConfirmDialog>: asks before a change that can't be taken back
