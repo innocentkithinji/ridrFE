@@ -1,8 +1,9 @@
 import { ContactGroupService, RuleService, type ContactGroup, type Rule } from "@ridr/web";
-import { Link } from "react-router";
 import { QueryView } from "@/components/states";
 import { useContactGroups } from "@/features/contact-groups/api/get-contact-groups";
 import { useRules } from "@/features/contact-groups/api/get-rules";
+import { DeleteContactGroup } from "@/features/contact-groups/components/delete-contact-group";
+import { RuleLinks } from "@/features/contact-groups/components/rule-links";
 import { channelLabel } from "@/features/contact-groups/components/channels";
 import {
   CreateContactGroup,
@@ -71,6 +72,9 @@ function ContactGroupCard({ group, rules }: ContactGroupCardProps) {
           <Can method={ContactGroupService.method.updateContactGroup}>
             <EditContactGroup group={group} />
           </Can>
+          <Can method={ContactGroupService.method.deleteContactGroup}>
+            <DeleteContactGroup group={group} rules={rules} />
+          </Can>
         </div>
       </header>
       {group.contacts.length === 0 ? (
@@ -96,20 +100,5 @@ function NotifyingRules({ rules }: { rules: Rule[] }) {
   if (rules.length === 0) {
     return <p className="text-muted-foreground text-sm">No Rule notifies this group.</p>;
   }
-  return (
-    <div className="text-sm">
-      <span className="text-muted-foreground">Notified by: </span>
-      <ul className="inline">
-        {rules.map((rule, i) => (
-          <li key={rule.id} className="inline">
-            {i > 0 && ", "}
-            <Link to={`/rules/${rule.id}`} className="underline underline-offset-4">
-              {rule.name}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  return <RuleLinks rules={rules} label="Notified by:" />;
 }
-
