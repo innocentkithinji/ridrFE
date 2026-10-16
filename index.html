@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ridr</title>
+    <script>
+      // Set the theme before the first paint, so a dark screen never
+      // flashes white. src/lib/theme.tsx takes over once React runs.
+      (function () {
+        var choice = null;
+        try { choice = localStorage.getItem("ridr.theme"); } catch (e) {}
+        var dark = choice === "dark" ||
+          (choice !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
