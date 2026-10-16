@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
               { name: "react", test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/ },
               { name: "api", test: /node_modules[\\/](@ridr|@bufbuild|@connectrpc|@tanstack)[\\/]/ },
               { name: "ui", test: /node_modules[\\/](radix-ui|@radix-ui|lucide-react)[\\/]/ },
+              { name: "charts", test: /node_modules[\\/](uplot)[\\/]/ },
             ],
           },
         },

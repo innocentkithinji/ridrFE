@@ -6,6 +6,7 @@ import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
 import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
 import { ControlledKeysRoute, controlledKeysPath } from "@/app/routes/controlled-keys";
 import { HomeRoute } from "@/app/routes/home";
+import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
 import { NotFoundRoute } from "@/app/routes/not-found";
 import {
   TestOnlyAgentGuideRoute,
@@ -23,7 +24,12 @@ const shellRoutes: RouteObject[] = [
   { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
-  ...(import.meta.env.DEV ? [{ path: testOnlyPath, element: <TestOnlyGatedRoute /> }] : []),
+  ...(import.meta.env.DEV
+    ? [
+        { path: testOnlyPath, element: <TestOnlyGatedRoute /> },
+        { path: liveQueryDevPath, element: <LiveQueryDevRoute /> },
+      ]
+    : []),
   { path: "*", element: <NotFoundRoute /> },
 ];
 
