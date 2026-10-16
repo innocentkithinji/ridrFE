@@ -20,6 +20,7 @@ import { ExploreRoute, explorePath } from "@/app/routes/explore";
 import { HomeRoute } from "@/app/routes/home";
 import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
 import { NotFoundRoute } from "@/app/routes/not-found";
+import { PreferencesRoute, preferencesPath } from "@/app/routes/preferences";
 import {
   NewRuleRoute,
   newRulePath,
@@ -59,6 +60,7 @@ const shellRoutes: RouteObject[] = [
   { path: silencesPath, element: <SilencesRoute /> },
   { path: teamPath, element: <TeamRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },
+  { path: preferencesPath, element: <PreferencesRoute /> },
   { path: dataSourcesPath, element: <DataSourcesRoute /> },
   { path: newDataSourcePath, element: <NewDataSourceRoute /> },
   { path: `${dataSourcesPath}/:adapterId`, element: <AdapterRoute /> },

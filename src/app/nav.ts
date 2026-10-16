@@ -9,6 +9,7 @@ import {
   KeyRound,
   ListChecks,
   ScrollText,
+  SlidersHorizontal,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
 import { explorePath, explorePermission } from "@/app/routes/explore";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
+import { preferencesPath, preferencesPermission } from "@/app/routes/preferences";
 import { contactGroupsPath, contactGroupsPermission } from "@/app/routes/contact-groups";
 import { controlledKeysPath, controlledKeysPermission } from "@/app/routes/controlled-keys";
 import { rulesPath, rulesPermission } from "@/app/routes/rules";
@@ -67,7 +69,7 @@ export const nav: NavGroup[] = [
     ],
   },
   {
-    label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log
+    label: "Settings", // Data sources, Catalog, Controlled keys, Team, Audit log, Preferences
     items: [
       { label: "Data sources", to: dataSourcesPath, icon: Cable, permission: dataSourcesPermission },
       { label: "Catalog", to: catalogPath, icon: BookOpen, permission: catalogPermission },
@@ -79,6 +81,12 @@ export const nav: NavGroup[] = [
       },
       { label: "Team", to: teamPath, icon: Users, permission: teamPermission },
       { label: "Audit log", to: auditLogPath, icon: ScrollText, permission: auditLogPermission },
+      {
+        label: "Preferences",
+        to: preferencesPath,
+        icon: SlidersHorizontal,
+        permission: preferencesPermission,
+      },
       ...testOnlyNav,
     ],
   },
