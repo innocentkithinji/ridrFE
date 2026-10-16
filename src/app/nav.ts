@@ -1,5 +1,6 @@
-import { BookOpen, Boxes, KeyRound, ScrollText } from "lucide-react";
+import { Bell, BookOpen, Boxes, KeyRound, ScrollText } from "lucide-react";
 import type { NavGroup } from "@/components/layout/nav-types";
+import { alertsPath, alertsPermission } from "@/app/routes/alerts";
 import { assetsPath, assetsPermission } from "@/app/routes/assets";
 import { auditLogPath, auditLogPermission } from "@/app/routes/audit-log";
 import { catalogPath, catalogPermission } from "@/app/routes/catalog";
@@ -12,7 +13,7 @@ import { testOnlyNav } from "@/app/routes/test-only";
 export const nav: NavGroup[] = [
   {
     label: "Monitor", // Home, Alerts, Explore, Dashboards
-    items: [],
+    items: [{ label: "Alerts", to: alertsPath, icon: Bell, permission: alertsPermission }],
   },
   {
     label: "Fleet", // Assets, Unclaimed devices

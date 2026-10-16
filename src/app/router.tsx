@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet, RouterProvider, type RouteObject } from "r
 import { nav } from "@/app/nav";
 import { AppProvider } from "@/app/provider";
 import { AgentGuideRoute } from "@/app/routes/agent-guide";
+import { AlertDetailRoute, alertDetailPath, AlertsRoute, alertsPath } from "@/app/routes/alerts";
 import { AuditLogRoute, auditLogPath } from "@/app/routes/audit-log";
 import { CatalogRoute, catalogPath } from "@/app/routes/catalog";
 import { AssetsRoute, assetsPath } from "@/app/routes/assets";
@@ -22,6 +23,8 @@ import { AppShell } from "@/components/layout/app-shell";
 // (the same one as its nav link in nav.ts).
 const shellRoutes: RouteObject[] = [
   { index: true, element: <HomeRoute /> },
+  { path: alertsPath, element: <AlertsRoute /> },
+  { path: alertDetailPath, element: <AlertDetailRoute /> },
   { path: assetsPath, element: <AssetsRoute /> },
   { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
