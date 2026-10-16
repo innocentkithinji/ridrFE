@@ -1,7 +1,8 @@
 import { measurementSeries } from "@/components/charts/time-series";
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
 import { Loading, PermissionDenied, QueryView } from "@/components/states";
-import { useLiveQuery, type LiveStatus } from "@/lib/use-live-query";
+import { LiveStatusBadge } from "@/components/live-status";
+import { useLiveQuery } from "@/lib/use-live-query";
 import { useWithUnitPreference } from "@/lib/use-unit-preferences";
 
 // assetReadingsQuery is the Live query for an Asset's last hour of
@@ -35,7 +36,7 @@ function AssetReadingsChart({ assetName, text }: { assetName: string; text: stri
     >
       {(answer) => (
         <div className="flex flex-col gap-2">
-          <LiveBadge status={live.status} />
+          <LiveStatusBadge status={live.status} />
           <TimeSeriesChart
             series={measurementSeries(answer.readings)}
             label={`${assetName}, last hour`}
@@ -43,27 +44,5 @@ function AssetReadingsChart({ assetName, text }: { assetName: string; text: stri
         </div>
       )}
     </QueryView>
-  );
-}
-
-const statusLabel: Record<LiveStatus, string> = {
-  connecting: "Connecting",
-  live: "Live",
-  reconnecting: "Reconnecting",
-  denied: "Refused",
-  failed: "Stopped",
-};
-
-function LiveBadge({ status }: { status: LiveStatus }) {
-  return (
-    <span role="status" className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-      <span
-        aria-hidden
-        className={
-          status === "live" ? "size-2 rounded-full bg-emerald-600" : "size-2 rounded-full bg-amber-500"
-        }
-      />
-      {statusLabel[status]}
-    </span>
   );
 }

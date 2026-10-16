@@ -22,6 +22,14 @@ import { HomeRoute } from "@/app/routes/home";
 import { LiveQueryDevRoute, liveQueryDevPath } from "@/app/routes/live-query-dev";
 import { NotFoundRoute } from "@/app/routes/not-found";
 import { PreferencesRoute, preferencesPath } from "@/app/routes/preferences";
+import {
+  NewRuleRoute,
+  newRulePath,
+  RuleDetailRoute,
+  ruleDetailPath,
+  RulesRoute,
+  rulesPath,
+} from "@/app/routes/rules";
 import { SilencesRoute, silencesPath } from "@/app/routes/silences";
 import { TeamRoute, teamPath } from "@/app/routes/team";
 import { UnclaimedDevicesRoute, unclaimedDevicesPath } from "@/app/routes/unclaimed-devices";
@@ -49,6 +57,9 @@ const shellRoutes: RouteObject[] = [
   { path: contactGroupsPath, element: <ContactGroupsRoute /> },
   { path: catalogPath, element: <CatalogRoute /> },
   { path: controlledKeysPath, element: <ControlledKeysRoute /> },
+  { path: rulesPath, element: <RulesRoute /> },
+  { path: newRulePath, element: <NewRuleRoute /> },
+  { path: ruleDetailPath, element: <RuleDetailRoute /> },
   { path: silencesPath, element: <SilencesRoute /> },
   { path: teamPath, element: <TeamRoute /> },
   { path: auditLogPath, element: <AuditLogRoute /> },

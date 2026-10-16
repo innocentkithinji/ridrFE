@@ -1,4 +1,4 @@
-import { AlertService, type Alert } from "@ridr/web";
+import { AlertService, RuleService, type Alert } from "@ridr/web";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
@@ -10,7 +10,7 @@ import { AlertStateBadge } from "@/features/alerts/components/alert-state";
 import { Deliveries } from "@/features/alerts/components/deliveries-table";
 import { formatTime } from "@/lib/format";
 import { withUnit } from "@/lib/units";
-import { Can } from "@/lib/me";
+import { Can, useCan } from "@/lib/me";
 
 // AlertDetailScreen is /alerts/:alertId. There is no GetAlert, so it
 // finds the Alert among the newest 1000.
@@ -43,6 +43,9 @@ function AlertSections({ alert }: { alert: Alert }) {
         <h1 className="text-2xl font-semibold tracking-tight">
           {alert.ruleName}: {alert.asset}
         </h1>
+        <p className="text-muted-foreground text-sm">
+          Raised by the Rule <RuleLink alert={alert} />
+        </p>
         {alert.silenceId && (
           <p className="text-muted-foreground text-sm">
             Fired during a Silence; nobody was notified then.
@@ -72,6 +75,19 @@ function AlertSections({ alert }: { alert: Alert }) {
         <AlertReadings alert={alert} />
       </section>
     </>
+  );
+}
+
+// RuleLink names the Rule that raised the Alert, linking to it for those
+// who may see Rules. A deleted Rule's page reads as not found.
+function RuleLink({ alert }: { alert: Alert }) {
+  if (!useCan(RuleService.method.getRule)) {
+    return alert.ruleName;
+  }
+  return (
+    <Link to={`/rules/${alert.ruleId}`} className="text-foreground underline underline-offset-4">
+      {alert.ruleName}
+    </Link>
   );
 }
 
