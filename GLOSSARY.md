@@ -7,7 +7,7 @@ Terms that exist only in the web app. Every product term (Asset, Device, Adapter
 ### Dashboards
 
 **Widget**:
-One tile on a Dashboard: a title, a Visualization and the Query that feeds it, placed on the Dashboard's grid.
+A part of a Dashboard: a title, a Visualization and the Query that feeds it, at one place on the Dashboard's grid.
 _Avoid_: Panel, card, tile, chart
 
 **Visualization**:

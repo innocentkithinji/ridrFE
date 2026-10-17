@@ -11,7 +11,7 @@ import { useSaveDashboard, useShareDashboard } from "@/features/dashboards/api/c
 import { useDashboard } from "@/features/dashboards/api/get-dashboards";
 import { DeleteDashboard, ShareButton } from "@/features/dashboards/components/dashboard-actions";
 import { EarlierVersionBanner, VersionHistory } from "@/features/dashboards/components/dashboard-history";
-import { WidgetCard } from "@/features/dashboards/components/widget-card";
+import { WidgetView } from "@/features/dashboards/components/widget-view";
 import { WidgetFormDialog, type WidgetFields } from "@/features/dashboards/components/widget-form";
 import { WidgetGrid } from "@/features/dashboards/components/widget-grid";
 import {
@@ -72,7 +72,7 @@ function EarlierVersion({ dashboard }: { dashboard: Dashboard }) {
 
 function Widgets({ widgets }: { widgets: WidgetDraft[] }) {
   if (widgets.length === 0) return <p className="text-muted-foreground py-8 text-center text-sm">No widgets.</p>;
-  return <WidgetGrid widgets={widgets} render={(widget) => <WidgetCard widget={widget} />} />;
+  return <WidgetGrid widgets={widgets} render={(widget) => <WidgetView widget={widget} />} />;
 }
 
 // Reload fetches the Dashboard's latest version again.
@@ -303,7 +303,7 @@ function DashboardEditor({ dashboard, draft, onChange, onDone, reload }: Dashboa
             setWidgets(draft.widgets.map((widget) => ({ ...widget, layout: layouts.get(widget.key) ?? widget.layout })))
           }
           render={(widget) => (
-            <WidgetCard
+            <WidgetView
               widget={widget}
               problem={problemOf(widget)}
               onEdit={() => setForm({ open: true, key: widget.key })}

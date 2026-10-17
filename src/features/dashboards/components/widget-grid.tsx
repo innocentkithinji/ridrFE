@@ -2,7 +2,7 @@ import ReactGridLayout, { noCompactor, useContainerWidth, verticalCompactor, typ
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import type { ReactNode } from "react";
-import { widgetHandle } from "@/features/dashboards/components/widget-card";
+import { widgetHandle } from "@/features/dashboards/components/widget-view";
 import { gridColumns, gridRowHeight, type WidgetDraft, type WidgetLayout } from "@/features/dashboards/widgets";
 
 // The gap between Widgets, in pixels.
