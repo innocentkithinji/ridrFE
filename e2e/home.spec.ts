@@ -78,6 +78,31 @@ test("open Alerts poll every 15 s and link to their detail", async ({ page, requ
   await expect(page).toHaveURL(`/alerts/${alert.id}`);
 });
 
+test("a burst of open Alerts shows the newest 10 and links to all of them", async ({ page, request }) => {
+  const { alerts } = await call(request, "AlertService/ListAlerts", {});
+  const alert = alerts[0];
+  const burst = Array.from({ length: 25 }, (_, i) => ({
+    ...alert,
+    id: `${alert.id.slice(0, -2)}${String(i).padStart(2, "0")}`,
+    ruleName: `Burst ${String(i).padStart(2, "0")}`,
+    state: "ALERT_STATE_FIRING",
+  }));
+  await page.route("**/ridr.v1.AlertService/ListAlerts", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { alerts: burst } });
+  });
+  await page.goto("/");
+
+  const panel = page.getByRole("region", { name: "Open Alerts" });
+  const rows = panel.getByRole("table", { name: "Open Alerts" }).getByRole("row");
+  // A header row and the 10 newest, which Ridr lists first.
+  await expect(rows).toHaveCount(11);
+  await expect(rows.nth(1)).toContainText("Burst 00");
+  await expect(panel).not.toContainText("Burst 10");
+  await panel.getByRole("link", { name: "View all 25 open Alerts" }).click();
+  await expect(page).toHaveURL("/alerts");
+});
+
 test("Device health shows live, silent and Unclaimed devices", async ({ page, request }) => {
   const { devices } = await call(request, "RegistryService/ListUnclaimedDevices");
   const unclaimed = devices[0];

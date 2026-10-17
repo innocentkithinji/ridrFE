@@ -13,14 +13,16 @@ async function call(request: APIRequestContext, path: string, data: object) {
 }
 
 // Rules on demo Assets raise Alerts in the shared demo data, so every
-// Rule a test names with unique() is deleted after it. Other workers'
-// Rules are left alone.
+// Rule a test names with unique() is disabled, which resolves its open
+// Alerts (deleting alone would leave them firing), then deleted after it.
+// Other workers' Rules are left alone.
 let named: string[] = [];
 
 test.afterEach(async ({ request }) => {
   const { rules = [] } = await call(request, "RuleService/ListRules", {});
-  for (const rule of rules as { id: string; name: string }[]) {
+  for (const rule of rules as { id: string; name: string; disabled?: boolean }[]) {
     if (named.includes(rule.name)) {
+      if (!rule.disabled) await call(request, "RuleService/DisableRule", { ruleId: rule.id });
       await call(request, "RuleService/DeleteRule", { ruleId: rule.id });
     }
   }
