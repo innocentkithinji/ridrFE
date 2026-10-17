@@ -498,7 +498,7 @@ function RangePicker({ value, source, rawOnly, onChange }: RangePickerProps) {
         </div>
       )}
       {source === "locations" && (
-        <p className="text-muted-foreground text-xs">Devices report positions often, so keep the range short.</p>
+        <p className="text-muted-foreground text-xs">Positions arrive often: a short range keeps the answer small and quick.</p>
       )}
       {rawOnly && (
         <p className="text-muted-foreground text-xs">

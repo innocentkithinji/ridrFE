@@ -218,7 +218,7 @@ it("stat, table, map and events Widgets are built through the builder alone, and
   await expect(built.getByRole("combobox", { name: "Metric" })).toHaveCount(0);
   await expect(built.getByRole("radio", { name: "Summarise every bucket" })).toHaveCount(0);
   await expect(built).toContainText("only Measurements can be summarised");
-  await expect(built).toContainText("keep the range short");
+  await expect(built).toContainText("a short range keeps the answer small");
   const tag = await addCondition(built, "Tag");
   await tag.getByRole("textbox", { name: "Tag key" }).fill("route");
   await tag.getByRole("textbox", { name: "Tag value" }).fill(trucks.route);
