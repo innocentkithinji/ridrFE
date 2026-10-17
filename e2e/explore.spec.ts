@@ -10,7 +10,16 @@ function editor(page: Page) {
   return page.getByRole("textbox", { name: "Query" });
 }
 
+// asText switches the Query from the builder to the text editor.
+async function asText(page: Page) {
+  await page.getByRole("button", { name: "Edit as text" }).click();
+}
+
 async function run(page: Page, text: string) {
+  // The Query opens in the builder when it can, else as text.
+  const toggle = page.getByRole("button", { name: /^(Edit as text|Use the builder)$/ });
+  await expect(toggle).toBeVisible();
+  if ((await toggle.innerText()).includes("Edit as text")) await asText(page);
   await editor(page).fill(text);
   await page.getByRole("button", { name: "Run" }).click();
 }
@@ -19,7 +28,7 @@ test("a Query runs on submit and draws its Measurements as a chart", async ({ pa
   await page.goto("/");
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Explore" }).click();
   await expect(page).toHaveURL(/\/explore$/);
-  await expect(editor(page)).toContainText("measurements");
+  await expect(page.getByRole("region", { name: "Query text" })).toContainText("measurements");
 
   await run(page, fridgeQuery);
 
@@ -45,6 +54,7 @@ test("a broken Query is marked inline at the reported spot, with the message", a
 
 test("the editor highlights sources, operators, keywords, durations and strings", async ({ page }) => {
   await page.goto(`/explore?q=${encodeURIComponent(fridgeQuery)}`);
+  await asText(page);
   const code = editor(page);
   await expect(code.locator(".tok-typeName")).toHaveText("measurements");
   await expect(code.locator(".tok-keyword").first()).toHaveText("where");
@@ -63,7 +73,7 @@ test("the same answer shows as a table with Units, and the URL restores both", a
   await expect(page).toHaveURL(/view=table/);
 
   await page.reload();
-  await expect(editor(page)).toContainText("Demo medicine fridge 1");
+  await expect(page.getByRole("region", { name: "Query text" })).toContainText("Demo medicine fridge 1");
   await expect(page.getByRole("table", { name: "Query answer" })).toBeVisible();
 });
 
@@ -71,6 +81,7 @@ test("the unit picker converts values", async ({ page }) => {
   await page.goto(`/explore?view=table&q=${encodeURIComponent(fridgeQuery)}`);
   await expect(page.getByRole("table", { name: "Query answer" })).toBeVisible();
 
+  await asText(page);
   await page.getByLabel("Unit").selectOption("[degF]");
 
   await expect(editor(page)).toContainText("| unit [degF]");

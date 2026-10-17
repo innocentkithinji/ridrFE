@@ -10,3 +10,17 @@ export function useExplainQuery(text: string, options: { enabled: boolean }) {
     enabled: options.enabled && text !== "",
   });
 }
+
+// One row per Device that reported a Measurement in the last day. Ridr
+// has no list of Devices, so pickers offer these (with the Unclaimed
+// ones) and still take any Device ID typed.
+export const recentDevicesQuery = "measurements | range last 24h | rollup count every all by device";
+
+// useRecentDevices names the Devices that reported in the last day.
+export function useRecentDevices(options: { enabled: boolean }) {
+  return useQuery(QueryService.method.runQuery, textQuery(recentDevicesQuery), {
+    enabled: options.enabled,
+    staleTime: 5 * 60_000,
+    select: (answer) => answer.rows.map((row) => row.deviceId),
+  });
+}

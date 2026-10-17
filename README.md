@@ -164,6 +164,7 @@ src/
     charts/             TimeSeriesChart and the series it draws; the palette
     map/                TrackMap: MapLibre and OpenFreeMap, loaded lazily; Tracks of Locations, an area
     query-editor/       QueryEditor: CodeMirror 6, query-language highlighting, QueryProblem markers
+    query-builder/      QueryBuilder: a Query by picking options (Explore, Widget editor); text back through ExplainQuery
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types
     states.tsx          Loading, Empty, PermissionDenied, NotFound, ErrorState, QueryView
     live-status.tsx     <LiveStatusBadge>: a Live query's status, as every live view shows it
@@ -210,6 +211,12 @@ wrangler.jsonc          Cloudflare: the build in dist/ as static assets, SPA fal
    `<QueryEditor>` from `@/components/query-editor/query-editor`: it
    highlights the query language and underlines the `QueryProblem`
    that `queryProblemOf(error)` from `@/lib/errors` reads.
+   Where users build a Query (Explore, the Widget editor), use
+   `<QueryBuilder>` from `@/components/query-builder/query-builder`:
+   it writes Query text from the options picked, shows that text, and
+   switches to `<QueryEditor>` on "Edit as text". Text comes back into
+   the builder only through `ExplainQuery`'s understood form; a Query
+   it can't show stays as text and says why.
 2. **Screens** in `src/features/<feature>/components/`. Show
    `Loading`, `ErrorState`, `Empty` or `QueryView` from
    `@/components/states`; hide actions the user may not take with

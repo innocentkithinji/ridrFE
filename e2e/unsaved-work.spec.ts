@@ -358,6 +358,7 @@ test("a Dashboard being edited asks before it is left, comes back with its Widge
   await nameField(page).fill(`${name} renamed`);
   await page.getByRole("button", { name: "Add a widget" }).click();
   const widgetDialog = page.getByRole("dialog", { name: "Add a widget" });
+  await widgetDialog.getByRole("button", { name: "Blank widget" }).click();
   await widgetDialog.getByRole("textbox", { name: "Title" }).fill("Draft widget");
   await widgetDialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(widgetDialog).toBeHidden();

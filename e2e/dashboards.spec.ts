@@ -11,6 +11,22 @@ function unique(label: string) {
   return `${label} ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
+const adminToken = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
+const editorToken = "dev-editor-token";
+
+// Dashboards a test made, deleted after it so runs leave none behind. One
+// the test already deleted is NotFound, which is fine.
+const made: string[] = [];
+test.afterEach(async ({ request }) => {
+  for (const dashboardId of made.splice(0)) {
+    await request.post(`${api}/ridr.v1.DashboardService/DeleteDashboard`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: { dashboardId },
+    });
+  }
+});
+
 // createDashboard makes a Dashboard from the list and lands in its edit mode.
 async function createDashboard(page: Page, name: string) {
   await page.goto("/dashboards");
@@ -20,13 +36,17 @@ async function createDashboard(page: Page, name: string) {
   await dialog.getByRole("button", { name: "Create" }).click();
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add a widget" })).toBeVisible();
+  made.push(new URL(page.url()).pathname.split("/").at(-1)!);
 }
 
 async function addWidget(page: Page, title: string, visualization: string, text: string) {
   await page.getByRole("button", { name: "Add a widget" }).click();
   const dialog = page.getByRole("dialog", { name: "Add a widget" });
+  await dialog.getByRole("button", { name: "Blank widget" }).click();
   await dialog.getByRole("textbox", { name: "Title" }).fill(title);
   await dialog.getByRole("combobox", { name: "Visualization" }).selectOption(visualization);
+  // These tests write the Query as text; the query builder has its own tests.
+  await dialog.getByRole("button", { name: "Edit as text" }).click();
   await dialog.getByRole("textbox", { name: "Query" }).fill(text);
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(dialog).toBeHidden();
@@ -139,10 +159,6 @@ test("a Dashboard that doesn't exist says so", async ({ page }) => {
   await expect(page.getByText("This Dashboard doesn't exist, or isn't yours to see.")).toBeVisible();
 });
 
-const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
-const adminToken = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
-const editorToken = "dev-editor-token";
-
 async function call(request: APIRequestContext, path: string, data: object, token: string) {
   const response = await request.post(`${api}/ridr.v1.${path}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -175,6 +191,7 @@ test("a shared Dashboard shows each viewer their own Units, without changing the
     },
     adminToken,
   );
+  made.push(dashboard.id);
   await call(request, "DashboardService/ShareDashboard", { dashboardId: dashboard.id, shared: true }, adminToken);
 
   try {
@@ -202,6 +219,7 @@ async function dashboardAt(request: APIRequestContext, name: string, titles: str
     { name, widgets: titles.map((title) => tableWidget(title)) },
     adminToken,
   );
+  made.push(dashboard.id);
   return dashboard as { id: string; version: number };
 }
 

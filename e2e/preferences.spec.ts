@@ -110,10 +110,13 @@ test("Explore starts on the preferred Unit, and leaves typed Queries as written"
   await prefer(page, "temperature", "°F");
 
   await page.goto("/explore");
-  const editor = page.getByRole("textbox", { name: "Query" });
+  // Explore opens in the query builder; its text shows below it.
+  const editor = page.getByRole("region", { name: "Query text" });
   await expect(editor).toContainText("| unit [degF]");
   await page.getByRole("button", { name: "Run" }).click();
-  await expect(page.getByLabel("Unit")).toHaveValue("[degF]");
+  await expect(page.getByRole("combobox", { name: "Unit" }).locator("option:checked")).toHaveText(
+    "Your Unit preference (°F)",
+  );
 
   await page.goto(`/explore?view=table&q=${encodeURIComponent(fridgeQuery)}`);
   const table = page.getByRole("table", { name: "Query answer" });
@@ -148,7 +151,7 @@ test("when the preferences can't be read, Queries the app writes use Ridr's Unit
   );
 
   await page.goto("/explore");
-  const editor = page.getByRole("textbox", { name: "Query" });
+  const editor = page.getByRole("region", { name: "Query text" });
   await expect(editor).toContainText("rollup avg, max every 5m by asset");
   await expect(editor).not.toContainText("| unit");
 });

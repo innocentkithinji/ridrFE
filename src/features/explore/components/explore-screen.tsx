@@ -3,7 +3,8 @@ import { CatalogService, QueryService, RegistryService, type RunQueryResponse, t
 import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { QueryEditor } from "@/components/query-editor/query-editor";
+import { QueryBuilder, type QueryMode } from "@/components/query-builder/query-builder";
+import { sourceNames } from "@/components/query-builder/model";
 import { Empty, ErrorState, Loading, PermissionDenied } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +40,7 @@ export function ExploreScreen() {
   const draft = useDraft(text, example);
   const canExplain = useCan(QueryService.method.explainQuery);
   const [liveWanted, setLiveWanted] = useState(true);
+  const [mode, setMode] = useState<QueryMode | null>(null);
 
   const explain = useExplainQuery(text, { enabled: canExplain });
   const plan = refreshPlan(explain.data?.query);
@@ -84,21 +86,29 @@ export function ExploreScreen() {
             submit(draft.value);
           }}
         >
-          <QueryEditor
+          <QueryBuilder
             value={draft.value}
             onChange={draft.set}
+            sources={sourceNames}
             onSubmit={submit}
             problem={problem}
             vocabulary={vocabulary}
+            writePreference
+            onModeChange={setMode}
           />
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit">Run</Button>
-            <span className="text-muted-foreground text-xs">or press Ctrl/⌘ + Enter</span>
-            <UnitPicker
-              value={explain.data?.query?.unit ?? ""}
-              disabled={!text || explain.data?.query?.source !== "measurements"}
-              onPick={(unit) => submit(withUnitStage(text, unit))}
-            />
+            {mode === "text" && (
+              <>
+                <span className="text-muted-foreground text-xs">or press Ctrl/⌘ + Enter</span>
+                {/* The builder has its own Unit option. */}
+                <UnitPicker
+                  value={explain.data?.query?.unit ?? ""}
+                  disabled={!text || explain.data?.query?.source !== "measurements"}
+                  onPick={(unit) => submit(withUnitStage(text, unit))}
+                />
+              </>
+            )}
           </div>
         </form>
         <aside className="flex flex-col gap-3">

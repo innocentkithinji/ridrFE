@@ -41,6 +41,6 @@ export function useUnclaimedDevices(options: { enabled?: boolean } = {}) {
 
 // useControlledKeys lists every Controlled key with its sorted allowed
 // values. Pickers across the app (Assets, Silences, Rules, Team) reuse it.
-export function useControlledKeys() {
-  return useQuery(RegistryService.method.listControlledKeys, {});
+export function useControlledKeys(options: { enabled?: boolean } = {}) {
+  return useQuery(RegistryService.method.listControlledKeys, {}, options);
 }
