@@ -169,3 +169,93 @@ test("saving a Mapping clears its draft", async ({ page, request }) => {
   await leaveVia(page, "Assets");
   await expect(page).toHaveURL(/\/assets$/);
 });
+
+// rule makes a threshold Rule over a key no Asset holds, so it never
+// fires, deleted after the test.
+async function createRule(request: APIRequestContext, name: string) {
+  const { rule } = await call<{ rule: { id: string } }>(request, "RuleService/CreateRule", {
+    rule: {
+      name,
+      selector: { e2e_drafts: unique() },
+      threshold: { metric: "temperature", operator: "THRESHOLD_OPERATOR_ABOVE", value: 30, unit: "Cel" },
+    },
+  });
+  cleanups.push(() => call(request, "RuleService/DeleteRule", { ruleId: rule.id }));
+  return rule.id;
+}
+
+test("a new Rule asks before it is left, comes back after a reload, and Discard clears it", async ({ page }) => {
+  await page.goto("/rules/new");
+  const name = `e2e draft rule ${unique()}`;
+  await page.getByLabel("Name").fill(name);
+
+  await leaveVia(page, "Silences");
+  await discardDialog(page).getByRole("button", { name: "Keep editing" }).click();
+  await expect(page).toHaveURL(/\/rules\/new$/);
+  await expect(page.getByLabel("Name")).toHaveValue(name);
+
+  expect(await reloadAccepting(page)).toBe(true);
+  await expect(restoredNotice(page)).toBeVisible();
+  await expect(page.getByLabel("Name")).toHaveValue(name);
+
+  await restoredNotice(page).getByRole("button", { name: "Discard" }).click();
+  await expect(page.getByLabel("Name")).toHaveValue("");
+  await leaveVia(page, "Silences");
+  await expect(page).toHaveURL(/\/silences$/);
+});
+
+test("an edited Rule reopens in edit mode with its draft, and saving clears it", async ({ page, request }) => {
+  const name = `e2e draft rule ${unique()}`;
+  const ruleId = await createRule(request, name);
+  await page.goto(`/rules/${ruleId}`);
+  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByLabel("Name").fill(`${name} renamed`);
+
+  expect(await reloadAccepting(page)).toBe(true);
+  await expect(page.getByRole("heading", { name: `Edit ${name}` })).toBeVisible();
+  await expect(restoredNotice(page)).toBeVisible();
+  await expect(page.getByLabel("Name")).toHaveValue(`${name} renamed`);
+
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("heading", { name: `${name} renamed` })).toBeVisible();
+  expect(await reloadAccepting(page)).toBe(false);
+  await expect(page.getByRole("heading", { name: `${name} renamed` })).toBeVisible();
+  await expect(restoredNotice(page)).toHaveCount(0);
+});
+
+test("leaving an edited Rule and confirming discards the edit", async ({ page, request }) => {
+  const name = `e2e draft rule ${unique()}`;
+  const ruleId = await createRule(request, name);
+  await page.goto(`/rules/${ruleId}`);
+  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByLabel("Name").fill(`${name} renamed`);
+  await leaveVia(page, "Rules");
+  await discardDialog(page).getByRole("button", { name: "Discard" }).click();
+  await expect(page).toHaveURL(/\/rules$/);
+  await page.goto(`/rules/${ruleId}`);
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit" })).toBeVisible();
+});
+
+test("creating a Rule clears the new Rule's draft and leaves without asking", async ({ page, request }) => {
+  const name = `e2e draft rule ${unique()}`;
+  await page.goto("/rules/new");
+  await page.getByLabel("Name").fill(name);
+  await page.getByRole("button", { name: "Add Attribute" }).click();
+  await page.getByLabel("Key 1").fill("e2e_drafts");
+  await page.getByLabel("Value 1").fill(unique());
+  await page.getByLabel("Metric").selectOption("temperature");
+  // Far above anything reported, so it never fires.
+  await page.getByLabel("Value", { exact: true }).fill("1000");
+  await page.getByLabel("Unit").selectOption("Cel");
+  await page.getByRole("button", { name: "Create Rule" }).click();
+
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(discardDialog(page)).toHaveCount(0);
+  const ruleId = page.url().split("/").at(-1)!;
+  cleanups.push(() => call(request, "RuleService/DeleteRule", { ruleId }));
+
+  await page.goto("/rules/new");
+  await expect(page.getByLabel("Name")).toHaveValue("");
+  await expect(restoredNotice(page)).toHaveCount(0);
+});

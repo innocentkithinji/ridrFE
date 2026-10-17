@@ -2,7 +2,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { durationFromMs, durationMs, type Duration } from "@bufbuild/protobuf/wkt";
 import { GeofenceTrigger, ThresholdOperator, type Rule, type RuleSchema } from "@ridr/web";
 import { crossesAntimeridian, type GeoPolygon } from "@/components/map/tracks";
-import { attributeRowsOf, attributesOf, type AttributeRow } from "@/lib/attributes";
+import { attributeRowsOf, attributesOf, newAttributeRow, type AttributeRow } from "@/lib/attributes";
 
 // The three conditions a Rule watches for.
 export type RuleKind = "threshold" | "noData" | "geofence";
@@ -53,6 +53,23 @@ export const antimeridianProblem =
   "This area crosses the 180° meridian, which Ridr can't watch. Draw it on one side.";
 
 const minuteMs = 60_000;
+
+// ruleDraftKey is where a Rule's unsaved edit is kept, or a new Rule's.
+export function ruleDraftKey(ruleId?: string): string {
+  return ruleId ? `rule:${ruleId}` : "rule:new";
+}
+
+// storedRuleDraft reads a draft back from storage, with fresh selector
+// row IDs so they never clash with rows made since.
+export function storedRuleDraft(stored: unknown): RuleDraft | null {
+  const draft = stored as RuleDraft | null;
+  if (!draft || typeof draft.name !== "string" || !Array.isArray(draft.selector)) return null;
+  return {
+    ...newDraft(),
+    ...draft,
+    selector: draft.selector.map(({ key, value }) => ({ ...newAttributeRow(), key, value })),
+  };
+}
 
 // newDraft starts a Rule with Ridr's defaults: a threshold, fresh for 5
 // minutes, no repeats.

@@ -22,6 +22,7 @@ import {
   draftOf,
   kindOf,
   operatorLabels,
+  ruleDraftKey,
   ruleOf,
   selectorText,
   triggerLabels,
@@ -32,6 +33,7 @@ import { ScopeNote } from "@/features/rules/components/scope-note";
 import type { GeoPolygon } from "@/components/map/tracks";
 import { formatTime } from "@/lib/format";
 import { Can, useCan } from "@/lib/me";
+import { hasStoredDraft } from "@/lib/unsaved-draft";
 import { withUnit } from "@/lib/units";
 
 const notFoundMessage = "This Rule doesn't exist, or isn't yours to see.";
@@ -68,7 +70,8 @@ function isMissing(error: ConnectError): boolean {
 }
 
 function RuleDetail({ rule }: { rule: Rule }) {
-  const [editing, setEditing] = useState(false);
+  // A Rule left with an unsaved edit reopens in edit mode, restoring it.
+  const [editing, setEditing] = useState(() => hasStoredDraft(ruleDraftKey(rule.id)));
   const update = useUpdateRule();
   const canEdit = useCan(RuleService.method.updateRule);
 
@@ -78,12 +81,11 @@ function RuleDetail({ rule }: { rule: Rule }) {
         <h1 className="text-2xl font-semibold tracking-tight">Edit {rule.name}</h1>
         <ScopeNote />
         <RuleForm
+          draftKey={ruleDraftKey(rule.id)}
           initial={draftOf(rule)}
           submitLabel="Save"
-          save={async (draft) => {
-            await update.mutateAsync({ rule: ruleOf(draft, rule.id) });
-            setEditing(false);
-          }}
+          save={(draft) => update.mutateAsync({ rule: ruleOf(draft, rule.id) })}
+          onSaved={() => setEditing(false)}
           onCancel={() => setEditing(false)}
         />
       </>

@@ -6,6 +6,7 @@ import { AttributeEditor } from "@/components/attribute-editor";
 import { TrackMap } from "@/components/map/track-map";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LeaveGuard, RestoredDraftNotice } from "@/components/unsaved-draft";
 import { useAssets } from "@/lib/api/registry";
 import { sortMetrics, useMetrics } from "@/lib/api/catalog";
 import { useUnits } from "@/lib/api/catalog";
@@ -15,6 +16,7 @@ import {
   antimeridianProblem,
   draftProblems,
   kindLabels,
+  storedRuleDraft,
   operatorLabels,
   triggerLabels,
   type DraftProblems,
@@ -31,22 +33,29 @@ import {
 } from "@/lib/attributes";
 import { messageFor } from "@/lib/errors";
 import { unitLabel } from "@/lib/units";
+import { useUnsavedDraft } from "@/lib/unsaved-draft";
 
 const selectClass =
   "border-input bg-background h-8 w-full rounded-lg border px-2 text-sm aria-invalid:border-destructive";
 
-type RuleFormProps = {
+type RuleFormProps<T> = {
+  // Where unsaved work is kept: ruleDraftKey of the Rule, or of a new one.
+  draftKey: string;
   initial: RuleDraft;
   submitLabel: string;
   // Sends the draft; a refusal it throws shows beside the form.
-  save: (draft: RuleDraft) => Promise<unknown>;
+  save: (draft: RuleDraft) => Promise<T>;
+  // After a save, with nothing unsaved left, so leaving asks nothing.
+  onSaved: (saved: T) => void;
+  // After Cancel, which throws the unsaved work away.
   onCancel: () => void;
 };
 
 // RuleForm edits every field of a Rule: name, the Assets it watches, its
 // condition, timing, who it notifies and how often.
-export function RuleForm({ initial, submitLabel, save, onCancel }: RuleFormProps) {
-  const [draft, setDraft] = useState(initial);
+export function RuleForm<T>({ draftKey, initial, submitLabel, save, onSaved, onCancel }: RuleFormProps<T>) {
+  const unsaved = useUnsavedDraft({ key: draftKey, initial: () => initial, fromStored: storedRuleDraft });
+  const { draft, setDraft } = unsaved;
   const [submitted, setSubmitted] = useState(false);
   const [refusal, setRefusal] = useState<string>();
   const [saving, setSaving] = useState(false);
@@ -67,7 +76,9 @@ export function RuleForm({ initial, submitLabel, save, onCancel }: RuleFormProps
     }
     setSaving(true);
     try {
-      await save(draft);
+      const saved = await save(draft);
+      unsaved.reset(draft);
+      onSaved(saved);
     } catch (error) {
       setRefusal(refusalMessage(error));
     } finally {
@@ -84,6 +95,8 @@ export function RuleForm({ initial, submitLabel, save, onCancel }: RuleFormProps
 
   return (
     <form onSubmit={submit} noValidate className="max-w-3xl space-y-8">
+      <LeaveGuard draft={unsaved} />
+      <RestoredDraftNotice draft={unsaved} />
       <Field {...field("name")} label="Name">
         <Input
           {...controlProps(field("name"))}
@@ -198,7 +211,14 @@ export function RuleForm({ initial, submitLabel, save, onCancel }: RuleFormProps
         <Button type="submit" disabled={saving}>
           {saving ? "Saving…" : submitLabel}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            unsaved.discard();
+            onCancel();
+          }}
+        >
           Cancel
         </Button>
       </div>
