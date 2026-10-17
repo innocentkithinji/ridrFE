@@ -1,4 +1,6 @@
+import type { Layer } from "@deck.gl/core";
 import { palette } from "@/components/charts/palette";
+import type { Playback } from "@/components/map/playback";
 import type { TrackLook, TrackShow } from "@/components/map/track-layers";
 import type { GeoPolygon, Track } from "@/components/map/tracks";
 
@@ -21,6 +23,18 @@ export type MapCanvasProps = {
   // Called with false while the base map or its tiles load, true once the
   // map has drawn.
   onReady: (ready: boolean) => void;
+  // Set on live maps: the vehicles to animate in place of each Track's
+  // latest position.
+  vehicles?: MapVehicles;
+};
+
+export type MapVehicles = {
+  playback: Playback;
+  // False under reduced motion: vehicles step from Location to Location.
+  glide: boolean;
+  selected: string | null;
+  // Called with the vehicle clicked on, or null for a click elsewhere.
+  onSelect: (id: string | null) => void;
 };
 
 export const looks: Record<"light" | "dark", TrackLook> = {
@@ -39,4 +53,24 @@ export const fitPadding = 48;
 // few enough Tracks, the fleet colour when there are more.
 export function trackColor(look: TrackLook, index: number, count: number): string {
   return count <= look.colors.length ? look.colors[index] : look.fleet;
+}
+
+// runVehicles draws vehicles on every animation frame, handing draw the
+// layers for each, until the returned function stops it. The browser
+// pauses animation frames in a hidden tab, so a hidden map costs nothing.
+export function runVehicles(
+  get: () => { vehicles?: MapVehicles; theme: "light" | "dark" },
+  zoom: () => number,
+  draw: (layers: Layer[]) => void,
+  layersFor: (vehicles: MapVehicles, frame: number, theme: "light" | "dark", zoom: number) => Layer[],
+): () => void {
+  let frame = 0;
+  let request = 0;
+  const step = () => {
+    const now = get();
+    if (now.vehicles) draw(layersFor(now.vehicles, frame++, now.theme, zoom()));
+    request = requestAnimationFrame(step);
+  };
+  request = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(request);
 }

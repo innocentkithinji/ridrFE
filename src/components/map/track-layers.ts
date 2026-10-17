@@ -141,9 +141,13 @@ export class TrackLayers {
   }
 
   // show sets whether paths draw, and dims positions that may be out of
-  // date (a Live query reopening).
-  show(show: TrackShow, stale: boolean) {
+  // date (a Live query reopening). With vehicles, which a live map draws
+  // moving instead, the latest positions and their labels hide.
+  show(show: TrackShow, stale: boolean, vehicles = false) {
     this.map.setLayoutProperty(ids.tracks, "visibility", show === "tracks" ? "visible" : "none");
+    for (const id of [ids.latest, `${ids.latest}-label`]) {
+      this.map.setLayoutProperty(id, "visibility", vehicles ? "none" : "visible");
+    }
     this.map.setPaintProperty(ids.tracks, "line-opacity", stale ? 0.3 : 0.8);
     this.map.setPaintProperty(ids.latest, "circle-opacity", stale ? 0.4 : 1);
   }

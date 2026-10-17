@@ -1,10 +1,12 @@
+import { MapboxOverlay } from "@deck.gl/mapbox";
 import { LngLatBounds, Map as MapLibre, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
-import { fitMaxZoom, fitPadding, looks, start, type MapCanvasProps } from "@/components/map/canvas";
+import { fitMaxZoom, fitPadding, looks, runVehicles, start, type MapCanvasProps } from "@/components/map/canvas";
 import { TrackLayers } from "@/components/map/track-layers";
 import { wrapLongitude, type GeoPolygon } from "@/components/map/tracks";
+import { layersForVehicles, vehicleLayerId } from "@/components/map/vehicle-layers";
 
 // MapCanvas is TrackMap's keyless base map, MapLibre with OpenFreeMap
 // tiles, used when the app isn't configured for Google Maps. It is in
@@ -21,13 +23,18 @@ const styles = {
 } as const;
 
 export default function MapCanvas(props: MapCanvasProps) {
-  const { tracks, show, stale, area, theme, height, onReady, onArea, drawing } = props;
+  const { tracks, show, stale, area, theme, height, onReady, onArea, drawing, vehicles } = props;
   const target = useRef<HTMLDivElement>(null);
-  const [layers, setLayers] = useState<{ map: MapLibre; layers: TrackLayers; theme: "light" | "dark" } | null>(null);
+  const [layers, setLayers] = useState<{
+    map: MapLibre;
+    layers: TrackLayers;
+    overlay: MapboxOverlay;
+    theme: "light" | "dark";
+  } | null>(null);
   // What to draw when a style finishes loading, which happens outside React.
-  const current = useRef({ tracks, show, stale, area, theme, onReady, onArea, drawing });
+  const current = useRef({ tracks, show, stale, area, theme, onReady, onArea, drawing, vehicles });
   useEffect(() => {
-    current.current = { tracks, show, stale, area, theme, onReady, onArea, drawing };
+    current.current = { tracks, show, stale, area, theme, onReady, onArea, drawing, vehicles };
   });
 
   // Make the map once; a new theme swaps its style below.
@@ -44,11 +51,16 @@ export default function MapCanvas(props: MapCanvasProps) {
     });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     const trackLayers = new TrackLayers(map);
+    // Vehicles are deck.gl layers on a canvas over the map's. Not drawn
+    // into the map's own canvas, as on the Google map: deck.gl's
+    // interleaved mode reads MapLibre internals that MapLibre 6 removed.
+    const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
+    map.addControl(overlay);
     let firstLoad = true;
     map.on("style.load", () => {
       const now = current.current;
       trackLayers.install(looks[now.theme]);
-      trackLayers.show(now.show, now.stale);
+      trackLayers.show(now.show, now.stale, !!now.vehicles);
       trackLayers.area(now.area);
       trackLayers.update(now.tracks, looks[now.theme]);
       // With no Tracks to fit, open on the area, as a saved geofence.
@@ -58,14 +70,23 @@ export default function MapCanvas(props: MapCanvasProps) {
         map.fitBounds(bounds, { padding: fitPadding, maxZoom: fitMaxZoom, duration: 0 });
       }
       firstLoad = false;
-      setLayers({ map, layers: trackLayers, theme: now.theme });
+      setLayers({ map, layers: trackLayers, overlay, theme: now.theme });
     });
     map.on("click", (event) => {
       const now = current.current;
-      if (!now.drawing || !now.onArea) return;
-      now.onArea([...(now.area ?? []), [wrapLongitude(event.lngLat.lng), event.lngLat.lat]]);
+      if (now.drawing && now.onArea) {
+        now.onArea([...(now.area ?? []), [wrapLongitude(event.lngLat.lng), event.lngLat.lat]]);
+      } else if (now.vehicles) {
+        const picked = overlay.pickObject({ x: event.point.x, y: event.point.y, radius: 8, layerIds: [vehicleLayerId] });
+        now.vehicles.onSelect((picked?.object as { id: string } | undefined)?.id ?? null);
+      }
     });
+    // Drawn once the style and its tiles are in. Not "idle": a map with
+    // moving vehicles redraws every frame and is never idle.
     map.on("idle", () => current.current.onReady(true));
+    map.on("render", () => {
+      if (map.isStyleLoaded() && map.areTilesLoaded()) current.current.onReady(true);
+    });
     // Follow the box, not only the window: sidebars and grids resize it.
     const resize = new ResizeObserver(() => map.resize());
     resize.observe(element);
@@ -85,9 +106,24 @@ export default function MapCanvas(props: MapCanvasProps) {
     if (layers?.theme === theme) layers.layers.update(tracks, looks[theme]);
   }, [layers, tracks, theme]);
 
+  const animated = !!vehicles;
   useEffect(() => {
-    if (layers?.theme === theme) layers.layers.show(show, stale);
-  }, [layers, show, stale, theme]);
+    if (layers?.theme === theme) layers.layers.show(show, stale, animated);
+  }, [layers, show, stale, theme, animated]);
+
+  useEffect(() => {
+    if (!layers || !animated) return;
+    const stop = runVehicles(
+      () => current.current,
+      () => layers.map.getZoom(),
+      (drawn) => layers.overlay.setProps({ layers: drawn }),
+      layersForVehicles,
+    );
+    return () => {
+      stop();
+      layers.overlay.setProps({ layers: [] });
+    };
+  }, [layers, animated]);
 
   useEffect(() => {
     if (layers?.theme === theme) layers.layers.area(area);

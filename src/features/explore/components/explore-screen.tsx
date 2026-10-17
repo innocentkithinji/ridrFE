@@ -137,6 +137,7 @@ export function ExploreScreen() {
           <Answer
             answer={(streaming ? live.data : run.data)!}
             loading={run.isPlaceholderData && run.isFetching}
+            live={streaming}
           />
         )}
       </section>
@@ -168,7 +169,7 @@ function useVocabulary() {
   };
 }
 
-function Answer({ answer, loading }: { answer: RunQueryResponse; loading: boolean }) {
+function Answer({ answer, loading, live }: { answer: RunQueryResponse; loading: boolean; live: boolean }) {
   const [params, setParams] = useSearchParams();
   const views = viewsFor(answer);
   if (answer.readings.length === 0 && answer.rows.length === 0) {
@@ -199,7 +200,7 @@ function Answer({ answer, loading }: { answer: RunQueryResponse; loading: boolea
         </TabsList>
       </Tabs>
       <div aria-busy={loading} className={loading ? "opacity-50 transition-opacity" : undefined}>
-        {chosen.render(answer)}
+        {chosen.render(answer, { live })}
       </div>
       {loading && (
         <p role="status" className="absolute inset-x-0 top-16 flex justify-center">

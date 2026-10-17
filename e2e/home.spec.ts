@@ -44,7 +44,8 @@ test("the map shows the demo fleet live and moving", async ({ page }) => {
   await expect(map.getByRole("status").filter({ hasText: /^Live$/ })).toBeVisible();
   await expect(fleetMap(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
   // Mark the canvas: a map rebuilt for new data would lose the mark.
-  await fleetMap(page).locator("canvas").evaluate((canvas) => canvas.setAttribute("data-first", ""));
+  // The base map's canvas; its vehicles are drawn on a second one.
+  await fleetMap(page).locator("canvas").first().evaluate((canvas) => canvas.setAttribute("data-first", ""));
 
   await fleetMap(page).getByText("Show as list").click();
   const positions = fleetMap(page).getByRole("list", { name: "Latest positions" }).getByRole("listitem");

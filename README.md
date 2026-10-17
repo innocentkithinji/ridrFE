@@ -201,7 +201,7 @@ src/
     routes/             one thin file per route: reads params, renders a feature screen loaded lazily
   components/
     charts/             TimeSeriesChart and the series it draws; the palette
-    map/                TrackMap: Google Maps or keyless MapLibre + OpenFreeMap, loaded lazily; Tracks of Locations, an area
+    map/                TrackMap: Google Maps or keyless MapLibre + OpenFreeMap, loaded lazily; Tracks of Locations, an area; live maps animate Vehicles (Playback)
     query-editor/       QueryEditor: CodeMirror 6, query-language highlighting, QueryProblem markers
     query-builder/      QueryBuilder: a Query by picking options (Explore, Widget editor); text back through ExplainQuery
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types

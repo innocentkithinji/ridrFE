@@ -15,7 +15,8 @@ export type ResultView = {
   id: string;
   label: string;
   shows: (answer: RunQueryResponse) => boolean;
-  render: (answer: RunQueryResponse) => ReactNode;
+  // `live` is set while the answer is kept current by a Live query.
+  render: (answer: RunQueryResponse, context: { live: boolean }) => ReactNode;
 };
 
 const chartView: ResultView = {
@@ -29,13 +30,13 @@ const mapView: ResultView = {
   id: "map",
   label: "Map",
   shows: (answer) => answer.readings.some((reading) => reading.kind.case === "location"),
-  render: (answer) => (
+  render: (answer, { live }) => (
     <div className="flex flex-col gap-2">
       <p className="text-muted-foreground text-sm">
         Locations aren't rolled up: the map draws every Location in the range, so keep the range short. A few
         minutes of a busy fleet is plenty for where it is now.
       </p>
-      <TrackMap tracks={locationTracks(answer.readings)} label="Query answer map" />
+      <TrackMap tracks={locationTracks(answer.readings)} label="Query answer map" live={live} />
     </div>
   ),
 };

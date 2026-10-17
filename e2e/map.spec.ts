@@ -55,9 +55,14 @@ function map(page: Page) {
   return page.getByRole("figure", { name: "Query answer map" });
 }
 
+// The base map's canvas; a live map draws its vehicles on a second one.
+function baseCanvas(page: Page) {
+  return map(page).locator("canvas").first();
+}
+
 // brightness is how light the drawn map looks, from 0 (black) to 255.
 async function brightness(page: Page): Promise<number> {
-  const png = (await map(page).locator("canvas").screenshot()).toString("base64");
+  const png = (await baseCanvas(page).screenshot()).toString("base64");
   return page.evaluate(async (data) => {
     const image = new Image();
     image.src = `data:image/png;base64,${data}`;
@@ -81,7 +86,7 @@ test("a locations Query draws a vehicle on the map", async ({ page, request }) =
 
     await expect(page.getByRole("tab", { name: "Map", selected: true })).toBeVisible();
     await expect(page.getByText("so keep the range short")).toBeVisible();
-    await expect(map(page).locator("canvas")).toBeVisible();
+    await expect(baseCanvas(page)).toBeVisible();
     await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
 
     await map(page).getByText("Show as list").click();
@@ -99,7 +104,7 @@ test("live Locations move the vehicle without redrawing the map", async ({ page,
     await expect(page.getByRole("status").filter({ hasText: /^Live$/ })).toBeVisible();
     await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
     // Mark the map's canvas: a map rebuilt for new data would lose the mark.
-    await map(page).locator("canvas").evaluate((canvas) => canvas.setAttribute("data-first", ""));
+    await baseCanvas(page).evaluate((canvas) => canvas.setAttribute("data-first", ""));
 
     await map(page).getByText("Show as list").click();
     const position = map(page)

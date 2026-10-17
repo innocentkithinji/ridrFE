@@ -1,13 +1,14 @@
 /// <reference types="google.maps" />
-import { CollisionFilterExtension } from "@deck.gl/extensions";
+import type { Layer } from "@deck.gl/core";
 import { GoogleMapsOverlay } from "@deck.gl/google-maps";
 import { PathLayer, PolygonLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useRef, useState } from "react";
-import { fitMaxZoom, fitPadding, looks, start, trackColor, type MapCanvasProps } from "@/components/map/canvas";
+import { fitMaxZoom, fitPadding, looks, runVehicles, start, trackColor, type MapCanvasProps } from "@/components/map/canvas";
 import { googleMaps } from "@/components/map/google-config";
 import type { TrackLook, TrackShow } from "@/components/map/track-layers";
 import { latestOf, wrapLongitude, type GeoPoint, type GeoPolygon, type Track } from "@/components/map/tracks";
+import { labelMinZoom, layersForVehicles, rgb, vehicleLayerId } from "@/components/map/vehicle-layers";
 
 // GoogleCanvas is TrackMap's base map when the app is configured for
 // Google Maps (ADR 0003): a vector map, in its own chunk with the deck.gl
@@ -77,7 +78,7 @@ const authFailures = new Set<() => void>();
 type View = { map: google.maps.Map; overlay: GoogleMapsOverlay; theme: "light" | "dark" };
 
 export default function GoogleCanvas(props: MapCanvasProps) {
-  const { tracks, show, stale, area, theme, height, onArea, drawing } = props;
+  const { tracks, show, stale, area, theme, height, onArea, drawing, vehicles } = props;
   const host = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<View | null>(null);
   const [failed, setFailed] = useState(false);
@@ -137,8 +138,18 @@ export default function GoogleCanvas(props: MapCanvasProps) {
           map.addListener("idle", () => current.current.onReady(true)),
           map.addListener("click", (clicked: google.maps.MapMouseEvent) => {
             const now = current.current;
-            if (!now.drawing || !now.onArea || !clicked.latLng) return;
-            now.onArea([...(now.area ?? []), [wrapLongitude(clicked.latLng.lng()), clicked.latLng.lat()]]);
+            if (now.drawing && now.onArea && clicked.latLng) {
+              now.onArea([...(now.area ?? []), [wrapLongitude(clicked.latLng.lng()), clicked.latLng.lat()]]);
+            } else if (now.vehicles && clicked.domEvent instanceof MouseEvent) {
+              const box = pooled.element.getBoundingClientRect();
+              const picked = overlay?.pickObject({
+                x: clicked.domEvent.clientX - box.left,
+                y: clicked.domEvent.clientY - box.top,
+                radius: 8,
+                layerIds: [vehicleLayerId],
+              });
+              now.vehicles.onSelect((picked?.object as { id: string } | undefined)?.id ?? null);
+            }
           }),
         );
         const fit = (points: { latitude: number; longitude: number }[]) => {
@@ -191,9 +202,33 @@ export default function GoogleCanvas(props: MapCanvasProps) {
   // A corner being dragged redraws the area before it is reported.
   const [dragged, setDragged] = useState<GeoPolygon | null>(null);
 
+  // The Tracks and area, under any vehicles drawn each frame.
+  const base = useRef<Layer[]>([]);
+  const animated = !!vehicles;
+  // Track labels show from labelMinZoom in, as vehicles' do.
+  const [labelled, setLabelled] = useState(false);
   useEffect(() => {
-    view?.overlay.setProps({ layers: trackLayers(tracks, show, stale, dragged ?? area, looks[view.theme]) });
-  }, [view, tracks, show, stale, area, dragged]);
+    if (!view) return;
+    const zoomed = () => setLabelled((view.map.getZoom() ?? 0) >= labelMinZoom);
+    zoomed();
+    const listener = view.map.addListener("zoom_changed", zoomed);
+    return () => listener.remove();
+  }, [view]);
+  useEffect(() => {
+    if (!view) return;
+    base.current = trackLayers(tracks, show, stale, dragged ?? area, looks[view.theme], animated, labelled);
+    view.overlay.setProps({ layers: base.current });
+  }, [view, tracks, show, stale, area, dragged, animated, labelled]);
+
+  useEffect(() => {
+    if (!view || !animated) return;
+    return runVehicles(
+      () => current.current,
+      () => view.map.getZoom() ?? 0,
+      (drawn) => view.overlay.setProps({ layers: [...base.current, ...drawn] }),
+      layersForVehicles,
+    );
+  }, [view, animated]);
 
   // While drawing, clicks add corners rather than zoom.
   useEffect(() => {
@@ -261,25 +296,22 @@ function positionOf(marker: google.maps.marker.AdvancedMarkerElement): [longitud
   return [wrapLongitude(position.lng), position.lat];
 }
 
-type Rgb = [number, number, number];
-
-function rgb(hex: string): Rgb {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
-
-type Shown = { track: Track; now: GeoPoint; color: Rgb };
+type Shown = { track: Track; now: GeoPoint; color: [number, number, number] };
 
 // trackLayers draws an area, then each Track's path, where it is now and
-// its label, as MapLibre's TrackLayers does. Labels that would overlap
-// give way, so a whole fleet stays readable.
+// its label, as MapLibre's TrackLayers does. Labels show only when
+// `labelled` (zoomed in), so a whole fleet's don't pile up. With vehicles,
+// which a live map draws moving instead, the latest positions and labels
+// are left out.
 function trackLayers(
   tracks: readonly Track[],
   show: TrackShow,
   stale: boolean,
   area: GeoPolygon | null,
   look: TrackLook,
-) {
+  vehicles: boolean,
+  labelled: boolean,
+): Layer[] {
   const shown: Shown[] = tracks.flatMap((track, index) => {
     const now = latestOf(track);
     return now ? [{ track, now, color: rgb(trackColor(look, index, tracks.length)) }] : [];
@@ -312,6 +344,7 @@ function trackLayers(
     new ScatterplotLayer<Shown>({
       id: "ridr-latest",
       data: shown,
+      visible: !vehicles,
       getPosition: where,
       radiusUnits: "pixels",
       getRadius: 5,
@@ -325,6 +358,7 @@ function trackLayers(
     new TextLayer<Shown>({
       id: "ridr-latest-label",
       data: shown,
+      visible: !vehicles && labelled,
       getPosition: where,
       getText: (d) => d.track.label,
       characterSet: "auto",
@@ -336,7 +370,6 @@ function trackLayers(
       fontSettings: { sdf: true },
       outlineWidth: 2,
       outlineColor: [...halo, 255],
-      extensions: [new CollisionFilterExtension()],
     }),
   ];
 }

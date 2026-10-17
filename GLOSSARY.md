@@ -28,6 +28,18 @@ _Avoid_: Preset, example, blueprint
 Where one Device has been: its Locations in a Query's range, oldest first, the last marked as where it is now. A map draws one Track per Device, since a Location names its Device, not its Asset.
 _Avoid_: Trail, path, route (a Tag in the demo data)
 
+**Vehicle**:
+How a live map draws a Track: an icon moving smoothly between its reported Locations, shown a few seconds behind them so there is always a next one to move to, turned to its heading. Selecting one shows its card (Mode, Motion, last report, position) and the trail it has left.
+_Avoid_: Marker, pin, sprite
+
+**Mode**:
+What kind of vehicle a Track is (rail, tram, subway, bus or ferry), from its newest Location's `mode` Tag. It picks the Vehicle's icon and colour, and how fast it could plausibly go; without the Tag, a Vehicle is an arrow.
+_Avoid_: Type, kind, category
+
+**Motion**:
+What a Vehicle's card says it is doing: EN ROUTE (its Locations either side of now differ), STOPPED (two in a row at one place), NO FIX (nothing for 90 seconds) or WAITING (too little to tell yet).
+_Avoid_: Status, state
+
 ### People and preferences
 
 **Unit preference**:

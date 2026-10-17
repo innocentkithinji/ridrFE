@@ -1,5 +1,6 @@
-import { lazy, Suspense, useId, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useState } from "react";
 import { googleMaps } from "@/components/map/google-config";
+import { Playback } from "@/components/map/playback";
 import type { TrackShow } from "@/components/map/track-layers";
 import {
   crossesAntimeridian,
@@ -8,7 +9,9 @@ import {
   type GeoPolygon,
   type Track,
 } from "@/components/map/tracks";
+import { VehicleCard } from "@/components/map/vehicle-card";
 import { Button } from "@/components/ui/button";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useTheme } from "@/lib/theme";
 
 // TrackMap draws Tracks on a map of the world, in the app's light or dark
@@ -20,6 +23,12 @@ import { useTheme } from "@/lib/theme";
 // view to the Tracks when it first has some, and again only when none of
 // the Tracks it showed remains (a different Query), so live appends don't
 // move a view the user has panned.
+//
+// A live map (`live`) draws each Track as a vehicle moving smoothly
+// between its reported Locations, a few seconds behind them so there is
+// always a next one to move to (Playback). Clicking a vehicle, or its
+// name in the list, selects it: its trail and a card about it show, until
+// Escape, Close or a click elsewhere on the map.
 //
 // The base map is Google Maps when the app is configured for it, else
 // the keyless OpenFreeMap map (ADR 0003). Either loads in its own chunk
@@ -37,6 +46,8 @@ export type TrackMapProps = {
   stale?: boolean;
   // An area drawn over the Tracks, such as a Rule's geofence.
   area?: MapArea;
+  // The Tracks grow live, so draw them as moving vehicles.
+  live?: boolean;
   height?: number;
 };
 
@@ -54,8 +65,31 @@ const MapCanvas = lazy(() =>
   googleMaps ? import("@/components/map/google-canvas") : import("@/components/map/map-canvas"),
 );
 
-export function TrackMap({ tracks, label, show = "tracks", stale = false, area, height = 360 }: TrackMapProps) {
+export function TrackMap({
+  tracks,
+  label,
+  show = "tracks",
+  stale = false,
+  area,
+  live = false,
+  height = 360,
+}: TrackMapProps) {
   const { resolved: theme } = useTheme();
+  const [playback] = useState(() => new Playback());
+  const [selected, setSelected] = useState<string | null>(null);
+  const reducedMotion = useReducedMotion();
+  useEffect(() => {
+    if (live) playback.ingest(tracks);
+  }, [playback, tracks, live]);
+  useEffect(() => {
+    if (!selected) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelected(null);
+    };
+    document.addEventListener("keydown", escape);
+    return () => document.removeEventListener("keydown", escape);
+  }, [selected]);
+  const chosen = live && selected && tracks.some((track) => track.id === selected) ? selected : null;
   const [ready, setReady] = useState(false);
   const [listed, setListed] = useState(false);
   const [drawing, setDrawing] = useState(false);
@@ -63,19 +97,28 @@ export function TrackMap({ tracks, label, show = "tracks", stale = false, area, 
 
   return (
     <figure aria-label={label} aria-busy={!ready} className="flex flex-col gap-2">
-      <Suspense fallback={<div style={{ height }} className="bg-muted w-full animate-pulse rounded-md border" />}>
-        <MapCanvas
-          tracks={tracks}
-          show={show}
-          stale={stale}
-          area={area?.polygon ?? null}
-          theme={theme}
-          height={height}
-          onReady={setReady}
-          onArea={onChange}
-          drawing={drawing}
-        />
-      </Suspense>
+      <div className="relative">
+        <Suspense fallback={<div style={{ height }} className="bg-muted w-full animate-pulse rounded-md border" />}>
+          <MapCanvas
+            tracks={tracks}
+            show={show}
+            stale={stale}
+            area={area?.polygon ?? null}
+            theme={theme}
+            height={height}
+            onReady={setReady}
+            onArea={onChange}
+            drawing={drawing}
+            vehicles={
+              live ? { playback, glide: !reducedMotion, selected: chosen, onSelect: setSelected } : undefined
+            }
+          />
+        </Suspense>
+        {chosen && <VehicleCard key={chosen} playback={playback} id={chosen} onClose={() => setSelected(null)} />}
+        <p className="sr-only" aria-live="polite">
+          {chosen ? `${tracks.find((track) => track.id === chosen)?.label} selected` : ""}
+        </p>
+      </div>
       {onChange && (
         <AreaControls
           polygon={area.polygon}
@@ -91,14 +134,21 @@ export function TrackMap({ tracks, label, show = "tracks", stale = false, area, 
       )}
       <details className="text-sm" onToggle={(event) => setListed(event.currentTarget.open)}>
         <summary className="text-muted-foreground cursor-pointer">Show as list</summary>
-        {listed && <LatestList tracks={tracks} />}
+        {listed && <LatestList tracks={tracks} onSelect={live ? setSelected : undefined} selected={chosen} />}
       </details>
     </figure>
   );
 }
 
+type LatestListProps = {
+  tracks: readonly Track[];
+  // Set on live maps, where each name selects its vehicle.
+  onSelect?: (id: string) => void;
+  selected: string | null;
+};
+
 // LatestList is where each Track is now, newest first.
-function LatestList({ tracks }: { tracks: readonly Track[] }) {
+function LatestList({ tracks, onSelect, selected }: LatestListProps) {
   const latest = tracks
     .flatMap((track) => {
       const now = latestOf(track);
@@ -109,7 +159,18 @@ function LatestList({ tracks }: { tracks: readonly Track[] }) {
     <ul aria-label="Latest positions" className="mt-2 flex max-h-64 flex-col gap-1 overflow-auto">
       {latest.map(({ track, now }) => (
         <li key={track.id} className="flex flex-wrap gap-x-3 tabular-nums">
-          <span className="font-medium">{track.label}</span>
+          {onSelect ? (
+            <button
+              type="button"
+              aria-pressed={selected === track.id}
+              className="font-medium underline-offset-2 hover:underline"
+              onClick={() => onSelect(track.id)}
+            >
+              {track.label}
+            </button>
+          ) : (
+            <span className="font-medium">{track.label}</span>
+          )}
           <span>{positionText(now)}</span>
           <time dateTime={new Date(now.time).toISOString()} className="text-muted-foreground">
             {new Date(now.time).toLocaleTimeString()}

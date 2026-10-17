@@ -99,6 +99,7 @@ export function WidgetView({ widget, problem, onEdit, onRemove }: WidgetViewProp
               title={widget.title}
               height={height}
               stale={result.status === "reconnecting"}
+              live={result.status === "live" || result.status === "reconnecting"}
             />
           )
         }
@@ -150,9 +151,11 @@ type DrawnProps = {
   title: string;
   height: number;
   stale: boolean;
+  // Kept current by a Live query, so maps draw moving vehicles.
+  live: boolean;
 };
 
-function Drawn({ visualization, answer, title, height, stale }: DrawnProps) {
+function Drawn({ visualization, answer, title, height, stale, live }: DrawnProps) {
   const room = Math.max(height - detailsLine, smallest);
   switch (visualization) {
     case "line": {
@@ -171,7 +174,7 @@ function Drawn({ visualization, answer, title, height, stale }: DrawnProps) {
       if (tracks.length === 0) return <Nothing>No Locations to draw.</Nothing>;
       return (
         <div className="h-full overflow-auto">
-          <TrackMap tracks={tracks} label={`${title} map`} height={room} stale={stale} />
+          <TrackMap tracks={tracks} label={`${title} map`} height={room} stale={stale} live={live} />
         </div>
       );
     }

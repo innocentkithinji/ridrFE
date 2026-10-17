@@ -11,6 +11,9 @@ export type Track = {
   // What the map and its list call it.
   label: string;
   points: GeoPoint[];
+  // What kind of vehicle it is, from its newest Location's `mode` Tag
+  // (rail, tram, subway, bus, ferry), as live maps draw it.
+  mode?: string;
 };
 
 // GeoPoint is one position at a time, in milliseconds since the epoch.
@@ -36,6 +39,7 @@ export function locationTracks(readings: readonly Reading[]): Track[] {
       byId.set(id, track);
     }
     track.points.push({ time: timestampMs(reading.deviceTime), latitude, longitude });
+    if (reading.tags.mode) track.mode = reading.tags.mode;
   }
   return [...byId.values()];
 }

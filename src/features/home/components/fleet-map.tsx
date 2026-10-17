@@ -41,6 +41,7 @@ function FleetMapBody({ live, tracks }: FleetMapBodyProps) {
         label="Fleet now"
         show="latest"
         stale={live.status === "reconnecting"}
+        live
         height={420}
       />
       {empty && (
