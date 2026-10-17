@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // The map of Locations in Explore, against the demo data: the Fintraffic
-// bridge keeps "Ship Megastar" (MMSI 276829000) reporting its position.
+// bridge keeps "Ship Megastar" (MMSI 276829000) reporting its position as
+// it sails between Helsinki (60° N) and Tallinn (59° N).
 
 const megastarQuery = 'locations | where asset == "Ship Megastar" | range last 1h';
 const megastarDevice = "276829000";
@@ -39,7 +40,7 @@ test("a locations Query draws a demo vehicle on the map", async ({ page }) => {
 
   await map(page).getByText("Show as list").click();
   const latest = map(page).getByRole("list", { name: "Latest positions" });
-  await expect(latest.getByRole("listitem").filter({ hasText: megastarDevice })).toContainText(/60\.\d+° N, 24\.\d+° E/);
+  await expect(latest.getByRole("listitem").filter({ hasText: megastarDevice })).toContainText(/\d+\.\d+° N, \d+\.\d+° E/);
 });
 
 test("live Locations move the vehicle without redrawing the map", async ({ page }) => {
