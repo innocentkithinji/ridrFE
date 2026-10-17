@@ -78,6 +78,15 @@ async function firingAlert(request: APIRequestContext, label: string) {
     cool: () => ingest(4),
     remove: async () => {
       await call(request, "RuleService/DisableRule", { ruleId: rule.id });
+      // A Reading evaluated as the Rule is disabled can still open an
+      // Alert just after (limitations.md), so resolve whatever is open.
+      const { alerts = [] } = await call<{ alerts?: ApiAlert[] }>(request, "AlertService/ListAlerts", {
+        ruleId: rule.id,
+        states: ["ALERT_STATE_FIRING", "ALERT_STATE_ACKNOWLEDGED"],
+      });
+      for (const open of alerts) {
+        await call(request, "AlertService/ResolveAlert", { alertId: open.id });
+      }
       await call(request, "RuleService/DeleteRule", { ruleId: rule.id });
       await call(request, "AdapterService/RetireAdapter", { adapterId: adapter.id });
     },
