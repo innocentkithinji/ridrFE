@@ -7,6 +7,7 @@ import { FormError } from "@/components/form-error";
 import { ErrorState, Loading, NotFound, PermissionDenied } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LeaveGuard, RestoredDraftNotice } from "@/components/unsaved-draft";
 import { useSaveDashboard, useShareDashboard } from "@/features/dashboards/api/change-dashboard";
 import { useDashboard } from "@/features/dashboards/api/get-dashboards";
 import { DeleteDashboard, ShareButton } from "@/features/dashboards/components/dashboard-actions";
@@ -28,6 +29,7 @@ import {
 import { isRefusal, queryProblemOf } from "@/lib/errors";
 import { formatTime } from "@/lib/format";
 import { Can, useIsScoped, useMe } from "@/lib/me";
+import { useUnsavedDraft } from "@/lib/unsaved-draft";
 
 // Opening a Dashboard with this navigation state starts in edit mode, as
 // right after creating one.
@@ -85,6 +87,20 @@ type Draft = { name: string; widgets: WidgetDraft[]; baseVersion: number };
 
 // SaveProblem marks the Widget a failed save's QueryProblem was about,
 // while its text is still the one that was sent.
+// storableDraft is a Draft as kept in storage: without the JSON form Ridr
+// filled in for saved Widgets, which is a protobuf message.
+function storableDraft(draft: Draft | null) {
+  return draft && { ...draft, widgets: draft.widgets.map((widget) => ({ ...widget, understood: undefined })) };
+}
+
+// storedDraft reads a kept Draft back, with fresh Widget keys so they
+// never clash with Widgets made since.
+function storedDraft(stored: unknown): Draft | null {
+  const draft = stored as Draft | null;
+  if (!draft || typeof draft.name !== "string" || !Array.isArray(draft.widgets)) return null;
+  return { ...draft, widgets: draft.widgets.map((widget) => ({ ...widget, key: newWidgetKey() })) };
+}
+
 type SaveProblem = { key: string; text: string; problem: QueryProblem };
 
 type DashboardViewProps = { dashboard: Dashboard; startEditing: boolean; reload: Reload };
@@ -92,20 +108,31 @@ type DashboardViewProps = { dashboard: Dashboard; startEditing: boolean; reload:
 function DashboardView({ dashboard, startEditing, reload }: DashboardViewProps) {
   const saved = useMemo(() => draftsOf(dashboard.widgets), [dashboard.widgets]);
   const edit = (): Draft => ({ name: dashboard.name, widgets: saved, baseVersion: dashboard.version });
-  const [draft, setDraft] = useState<Draft | null>(() => (startEditing ? edit() : null));
+  // An edit left unsaved is kept per Dashboard and reopens edit mode.
+  const unsaved = useUnsavedDraft<Draft | null>({
+    key: `dashboard:${dashboard.id}`,
+    initial: () => (startEditing ? edit() : null),
+    toStored: storableDraft,
+    fromStored: storedDraft,
+  });
+  const draft = unsaved.draft;
   const share = useShareDashboard();
   const shareErrorId = useId();
 
   return (
     <div className="flex flex-col gap-4">
+      <LeaveGuard draft={unsaved} />
       {draft ? (
-        <DashboardEditor
-          dashboard={dashboard}
-          draft={draft}
-          onChange={setDraft}
-          onDone={() => setDraft(null)}
-          reload={reload}
-        />
+        <>
+          <RestoredDraftNotice draft={unsaved} />
+          <DashboardEditor
+            dashboard={dashboard}
+            draft={draft}
+            onChange={unsaved.setDraft}
+            onDone={() => unsaved.reset(null)}
+            reload={reload}
+          />
+        </>
       ) : (
         <>
           <header className="flex flex-wrap items-start justify-between gap-4">
@@ -120,7 +147,7 @@ function DashboardView({ dashboard, startEditing, reload }: DashboardViewProps) 
               <ShareButton dashboard={dashboard} share={share} />
               <DeleteDashboard dashboard={dashboard} />
               <Can method={DashboardService.method.saveDashboard}>
-                <Button variant="outline" onClick={() => setDraft(edit())}>
+                <Button variant="outline" onClick={() => unsaved.reset(edit())}>
                   <Pencil /> Edit
                 </Button>
               </Can>

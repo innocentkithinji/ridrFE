@@ -336,3 +336,61 @@ test("creating a Silence clears its draft", async ({ page, request }) => {
   await expect(silenceForm(page).getByLabel("Comment")).toHaveValue("");
   await expect(restoredNotice(page)).toHaveCount(0);
 });
+
+// dashboard makes an empty Dashboard, deleted after the test.
+async function dashboard(request: APIRequestContext) {
+  const name = `e2e draft dashboard ${unique()}`;
+  const created = await call<{ dashboard: { id: string } }>(request, "DashboardService/CreateDashboard", { name });
+  const id = created.dashboard.id;
+  cleanups.push(() => call(request, "DashboardService/DeleteDashboard", { dashboardId: id }));
+  return { id, name };
+}
+
+const nameField = (page: Page) => page.getByRole("textbox", { name: "Name", exact: true });
+
+test("a Dashboard being edited asks before it is left, comes back with its Widgets after a reload, and Discard ends the edit", async ({
+  page,
+  request,
+}) => {
+  const { id, name } = await dashboard(request);
+  await page.goto(`/dashboards/${id}`);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await nameField(page).fill(`${name} renamed`);
+  await page.getByRole("button", { name: "Add a widget" }).click();
+  const widgetDialog = page.getByRole("dialog", { name: "Add a widget" });
+  await widgetDialog.getByRole("textbox", { name: "Title" }).fill("Draft widget");
+  await widgetDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(widgetDialog).toBeHidden();
+
+  await leaveVia(page, "Dashboards");
+  await discardDialog(page).getByRole("button", { name: "Keep editing" }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboards/${id}$`));
+  await expect(nameField(page)).toHaveValue(`${name} renamed`);
+
+  expect(await reloadAccepting(page)).toBe(true);
+  await expect(restoredNotice(page)).toBeVisible();
+  await expect(nameField(page)).toHaveValue(`${name} renamed`);
+  await expect(page.getByRole("region", { name: "Draft widget", exact: true })).toBeVisible();
+
+  await restoredNotice(page).getByRole("button", { name: "Discard" }).click();
+  await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+  await expect(page.getByText("No widgets.")).toBeVisible();
+  expect(await reloadAccepting(page)).toBe(false);
+  await expect(restoredNotice(page)).toHaveCount(0);
+});
+
+test("saving a Dashboard clears its draft", async ({ page, request }) => {
+  const { id, name } = await dashboard(request);
+  await page.goto(`/dashboards/${id}`);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await nameField(page).fill(`${name} saved`);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+
+  expect(await reloadAccepting(page)).toBe(false);
+  await expect(page.getByRole("heading", { name: `${name} saved`, level: 1 })).toBeVisible();
+  await expect(restoredNotice(page)).toHaveCount(0);
+  await leaveVia(page, "Dashboards");
+  await expect(page).toHaveURL(/\/dashboards$/);
+});
