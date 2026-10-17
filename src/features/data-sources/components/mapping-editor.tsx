@@ -9,6 +9,7 @@ import {
 import { Plus, X } from "lucide-react";
 import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { LeaveGuard, RestoredDraftNotice } from "@/components/unsaved-draft";
 import { Input } from "@/components/ui/input";
 import { useMetrics, useUnits } from "@/lib/api/catalog";
 import { useNewestRawPayload } from "@/features/data-sources/api/get-raw-payloads";
@@ -26,6 +27,7 @@ import {
 import { decodeBody, topicLevels } from "@/features/data-sources/raw-payload";
 import { messageFor } from "@/lib/errors";
 import { useCan } from "@/lib/me";
+import { useUnsavedDraft } from "@/lib/unsaved-draft";
 import { unitLabel, withUnit } from "@/lib/units";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +64,9 @@ type MappingEditorProps = {
 // payload, or levels of its MQTT topic picked as chips, previewed against
 // a sample before saving as a new version.
 export function MappingEditor({ adapterId, saved, onSaved }: MappingEditorProps) {
-  const [draft, setDraft] = useState(() => toDraft(saved));
+  // Unsaved work is kept per Connector, and asked about before leaving.
+  const unsaved = useUnsavedDraft({ key: `mapping:${adapterId}`, initial: () => toDraft(saved) });
+  const { draft, setDraft } = unsaved;
   // The path input a topic level chip fills: the last one focused.
   const [target, setTarget] = useState<{ set: (path: string) => void } | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -99,6 +103,7 @@ export function MappingEditor({ adapterId, saved, onSaved }: MappingEditorProps)
       {
         onSuccess: (answer) => {
           setProblem(null);
+          unsaved.reset(draft);
           onSaved(answer.mapping?.version ?? 0);
         },
         onError: (error) => setProblem(problemOf(error, draft)),
@@ -109,6 +114,8 @@ export function MappingEditor({ adapterId, saved, onSaved }: MappingEditorProps)
   const multipart = draft.deviceIdFields.length > 1;
   return (
     <div className="space-y-4">
+      <LeaveGuard draft={unsaved} />
+      <RestoredDraftNotice draft={unsaved} />
       <TopicLevels adapterId={adapterId} target={target} />
       <div className="space-y-4">
         <div className="space-y-2">
