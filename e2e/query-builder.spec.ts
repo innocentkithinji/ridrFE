@@ -59,6 +59,17 @@ async function fleet(request: APIRequestContext): Promise<Fleet> {
   await callAs(request, "RegistryService/AssignDevice", { deviceId, assetId: asset.id });
   // Readings count for the Asset only from the Assignment on.
   await report();
+  // Wait until Ridr has stored them, so a test's first answer holds them.
+  for (const source of ["measurements", "locations", "events"]) {
+    await expect
+      .poll(async () => {
+        const answer = await callAs<{ readings?: unknown[] }>(request, "QueryService/RunQuery", {
+          text: `${source} | where asset == "${asset.name}" | range last 15m`,
+        });
+        return answer.readings?.length ?? 0;
+      })
+      .toBeGreaterThan(0);
+  }
   return {
     stamp,
     adapterId: adapter.id,
@@ -194,7 +205,10 @@ it("stat, table, map and events Widgets are built through the builder alone, and
     .getByRole("combobox", { name: "Data source" })
     .selectOption({ label: trucks.adapterName });
   await built.getByRole("combobox", { name: "Range" }).selectOption("15m");
-  await expect(dialog.getByRole("region", { name: "Query text" })).toContainText(`adapter == "${trucks.adapterId}"`);
+  await expect(dialog.getByRole("region", { name: "Query text" })).toContainText(
+    // Bare when the ID is a plain word, quoted when it starts with a digit.
+    new RegExp(`adapter == "?${trucks.adapterId}"?`),
+  );
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
 
   // A map reads Locations: no Metric, no summarising, short ranges.
