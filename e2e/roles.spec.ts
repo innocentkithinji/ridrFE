@@ -1,5 +1,5 @@
 import { callAs, expect, test, users, type UserName } from "./users";
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 
 // What each Role and Scope sees and may do on every screen built so far,
 // signed in as the stack's dev users (e2e/users.ts): a viewer, an editor,
@@ -11,6 +11,29 @@ const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
 async function signedIn(page: Page, user: UserName) {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "User menu" })).toContainText(users[user].email);
+}
+
+// sharedDashboard has the dev admin create a Dashboard and share it with
+// the Organisation, for another user to open; the test deletes it after.
+async function sharedDashboard(request: APIRequestContext, label: string) {
+  const name = `${label} ${Date.now()}`;
+  const { dashboard } = await callAs<{ dashboard: { id: string } }>(
+    request,
+    "DashboardService/CreateDashboard",
+    { name },
+  );
+  await callAs(request, "DashboardService/ShareDashboard", { dashboardId: dashboard.id, shared: true });
+  return {
+    id: dashboard.id,
+    name,
+    remove: () => callAs(request, "DashboardService/DeleteDashboard", { dashboardId: dashboard.id }),
+  };
+}
+
+// anyRule names one of the demo's Rules, read as the dev admin.
+async function anyRule(request: APIRequestContext) {
+  const { rules } = await callAs<{ rules: { id: string; name: string }[] }>(request, "RuleService/ListRules", {});
+  return rules[0];
 }
 
 async function expectNoAccess(page: Page, path: string) {
@@ -70,6 +93,34 @@ test.describe("a viewer", () => {
     await expect(page.getByRole("form", { name: "Declare a Controlled key" })).toHaveCount(0);
     await expect(mode.getByRole("button")).toHaveCount(0);
   });
+
+  test("sees Dashboards without creating, editing, sharing or deleting them", async ({ page, request }) => {
+    const shared = await sharedDashboard(request, "Viewer sees");
+    try {
+      await page.goto("/dashboards");
+      await expect(page.getByRole("heading", { name: "Dashboards", level: 1 })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Create Dashboard" })).toHaveCount(0);
+      await page.getByRole("link", { name: shared.name }).click();
+      await expect(page.getByRole("heading", { name: shared.name, level: 1 })).toBeVisible();
+      for (const action of ["Edit", "Delete", "Share", "Make private"]) {
+        await expect(page.getByRole("button", { name: action, exact: true })).toHaveCount(0);
+      }
+    } finally {
+      await shared.remove();
+    }
+  });
+
+  test("sees Rules read-only", async ({ page, request }) => {
+    const rule = await anyRule(request);
+    await page.goto("/rules");
+    await expect(page.getByRole("link", { name: rule.name })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Create" })).toHaveCount(0);
+    await page.getByRole("link", { name: rule.name }).click();
+    await expect(page.getByRole("heading", { name: rule.name, level: 1 })).toBeVisible();
+    for (const action of ["Edit", "Disable", "Enable", "Delete"]) {
+      await expect(page.getByRole("button", { name: action, exact: true })).toHaveCount(0);
+    }
+  });
 });
 
 test.describe("an editor", () => {
@@ -124,6 +175,22 @@ test.describe("an editor", () => {
       "by dev-editor",
     );
   });
+
+  test("edits another's shared Dashboard but may not Share it", async ({ page, request }) => {
+    const shared = await sharedDashboard(request, "Editor sees");
+    try {
+      await page.goto(`/dashboards/${shared.id}`);
+      await expect(page.getByRole("heading", { name: shared.name, level: 1 })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Delete", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Share", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Make private", exact: true })).toHaveCount(0);
+      await page.goto("/dashboards");
+      await expect(page.getByRole("button", { name: "Create Dashboard" })).toBeVisible();
+    } finally {
+      await shared.remove();
+    }
+  });
 });
 
 test.describe("a scoped user", () => {
@@ -156,7 +223,9 @@ test.describe("a scoped user", () => {
     await expect(nav(page).getByRole("link", { name: "Assets" })).toBeVisible();
     await expect(nav(page).getByRole("link", { name: "Unclaimed devices" })).toHaveCount(0);
     await page.goto("/devices/unclaimed");
-    await expect(page.getByText("there are no Unclaimed devices to show")).toBeVisible();
+    const denied = page.getByRole("alert");
+    await expect(denied).toContainText("No access");
+    await expect(denied).toContainText("Your Scope doesn't let you see Unclaimed devices");
   });
 
   test("saving an Asset outside their Scope shows the server's message", async ({ page }) => {
@@ -184,6 +253,27 @@ test.describe("a scoped user", () => {
       await expect(page.getByText(note)).toBeVisible();
     }
     await expect(page.getByRole("button", { name: "Create" })).toHaveCount(0);
+  });
+
+  test("sees the scope note on a shared Dashboard", async ({ page, request }) => {
+    const shared = await sharedDashboard(request, "Scoped sees");
+    try {
+      await page.goto(`/dashboards/${shared.id}`);
+      await expect(page.getByRole("heading", { name: shared.name, level: 1 })).toBeVisible();
+      await expect(
+        page.getByText("Widgets show only Readings of Assets in your Scope, so others may see different numbers here."),
+      ).toBeVisible();
+    } finally {
+      await shared.remove();
+    }
+  });
+
+  // rules.spec.ts checks that a Rule whose selector reaches outside the
+  // Scope is refused with the server's reason.
+  test("sees the scope note on Rules and may create one", async ({ page }) => {
+    await page.goto("/rules");
+    await expect(page.getByText("You see only Rules whose selector lies inside your Scope")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Create" }).first()).toBeVisible();
   });
 });
 

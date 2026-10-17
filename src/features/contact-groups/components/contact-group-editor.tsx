@@ -17,7 +17,7 @@ import {
   ContactGroupForm,
   type ContactGroupDraft,
 } from "@/features/contact-groups/components/contact-group-form";
-import { SecretsDialog, type IssuedSecret } from "@/features/contact-groups/components/secrets-dialog";
+import { WebhookSecretDialog, type IssuedSecret } from "@/features/contact-groups/components/webhook-secret-dialog";
 
 // CreateContactGroup is the "Create" button and the new group's form.
 export function CreateContactGroup() {
@@ -91,7 +91,7 @@ function ContactGroupEditor({ title, trigger, group, save }: ContactGroupEditorP
           />
         </DialogContent>
       </Dialog>
-      <SecretsDialog secrets={secrets} onClose={() => setSecrets([])} />
+      <WebhookSecretDialog secrets={secrets} onDone={() => setSecrets([])} />
     </>
   );
 }

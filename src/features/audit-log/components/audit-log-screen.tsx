@@ -7,7 +7,7 @@ import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuditEntries } from "@/features/audit-log/api/use-audit-entries";
-import { useMembers } from "@/features/team/api/get-team";
+import { useMembers } from "@/lib/api/access";
 import {
   filtersFrom,
   formatTime,

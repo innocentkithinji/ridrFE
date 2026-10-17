@@ -1,7 +1,7 @@
 import { RegistryService } from "@ridr/web";
 import { QueryView } from "@/components/states";
-import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
-import { useValueUsage } from "@/features/controlled-keys/api/get-value-usage";
+import { useControlledKeys } from "@/lib/api/registry";
+import { useValueUsage } from "@/features/controlled-keys/value-usage";
 import { ControlledKeyCard } from "@/features/controlled-keys/components/controlled-key-card";
 import { DeclareControlledKeyForm } from "@/features/controlled-keys/components/declare-controlled-key-form";
 import { Can } from "@/lib/me";

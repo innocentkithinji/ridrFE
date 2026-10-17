@@ -1,7 +1,10 @@
+import { lazy } from "react";
 import { AccessService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
-import { TeamScreen } from "@/features/team/components/team-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const TeamScreen = lazy(() => import("@/features/team/components/team-screen").then((m) => ({ default: m.TeamScreen })));
 
 export const teamPath = "/settings/team";
 

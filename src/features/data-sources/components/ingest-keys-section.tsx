@@ -65,7 +65,9 @@ export function IngestKeysSection({ adapter, retired }: AdapterSectionProps) {
         ) : (
           <>
             The Agent for {adapter.name} sends with this key as{" "}
-            <code>Authorization: Bearer &lt;key&gt;</code>.
+            <code>Authorization: Bearer &lt;key&gt;</code>. If this is a Webhook connector, its
+            new URL is its old one with this key in place of the last part: Ridr tells a
+            connector's URL only once, to the browser that created it, so this one can't show it.
           </>
         )}
       </SecretDialog>

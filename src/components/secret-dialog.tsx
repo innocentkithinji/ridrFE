@@ -10,8 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// A secret Ridr returns once and keeps only as a hash, with what to call
-// it: "Ingest key", "Webhook URL", "Password"…
+// A secret Ridr returns once, with what to call it: "Ingest key",
+// "Webhook URL", "Signing secret for https://…"…
 export type Secret = { label: string; value: string };
 
 type SecretDialogProps = {
@@ -23,6 +23,10 @@ type SecretDialogProps = {
   // What the secrets are for; the dialog adds that they won't be shown
   // again.
   children?: ReactNode;
+  // Ridr keeps only a hash of most secrets (Ingest keys, passwords), and
+  // the dialog says so. Pass false for one Ridr keeps to use itself, such
+  // as a webhook signing secret.
+  hashed?: boolean;
   // Called when the user is done with the secrets. The dialog closes only
   // through "Done", never by a stray click or Escape, so a secret can't
   // be lost by accident.
@@ -31,7 +35,7 @@ type SecretDialogProps = {
 
 // SecretDialog shows secrets Ridr issues exactly once, each with a copy
 // button, until the user says they are done.
-export function SecretDialog({ secrets, title, children, onDone }: SecretDialogProps) {
+export function SecretDialog({ secrets, title, children, hashed = true, onDone }: SecretDialogProps) {
   return (
     <Dialog open={secrets !== null}>
       <DialogContent
@@ -45,7 +49,8 @@ export function SecretDialog({ secrets, title, children, onDone }: SecretDialogP
             <KeyRound className="size-4" aria-hidden /> {title}
           </DialogTitle>
           <DialogDescription>
-            {children} Copy it now: it won't be shown again. Ridr keeps only a hash of it.
+            {children} Copy it now: it won't be shown again.
+            {hashed && " Ridr keeps only a hash of it."}
           </DialogDescription>
         </DialogHeader>
         <dl className="space-y-3">

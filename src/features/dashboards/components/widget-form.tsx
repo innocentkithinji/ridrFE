@@ -4,7 +4,8 @@ import { QueryEditor } from "@/components/query-editor/query-editor";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useAssets, useMetrics } from "@/features/dashboards/api/vocabulary";
+import { useMetrics } from "@/lib/api/catalog";
+import { useAssets, vocabularyStaleTime } from "@/lib/api/registry";
 import { visualizations, type Visualization } from "@/features/dashboards/widgets";
 import { useCan } from "@/lib/me";
 
@@ -65,7 +66,7 @@ function WidgetForm({ start, adding, problem, onCancel, onDone }: WidgetFormProp
   const [submitted, setSubmitted] = useState(false);
   const titleProblemId = useId();
   const metrics = useMetrics({ enabled: useCan(CatalogService.method.listMetrics) });
-  const assets = useAssets({ enabled: useCan(RegistryService.method.listAssets) });
+  const assets = useAssets({ enabled: useCan(RegistryService.method.listAssets), staleTime: vocabularyStaleTime });
   const titleProblem = submitted && fields.title.trim() === "" ? "Give the widget a title." : null;
   const textProblem = submitted && fields.text.trim() === "" ? "Write the widget's Query." : null;
   // The save's problem marks the text it was about, until that changes.

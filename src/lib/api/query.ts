@@ -2,8 +2,9 @@ import { useQuery } from "@connectrpc/connect-query";
 import { QueryService } from "@ridr/web";
 import { textQuery } from "@/lib/use-live-query";
 
-// useExplainQuery reads a Widget Query's JSON form from its text, for a
-// Widget being edited, whose JSON form Ridr hasn't filled in yet.
+// useExplainQuery returns how Ridr understood a Query's text: its JSON
+// form, with the defaults filled in. Cheap and needs no data. Explore
+// shows it; a Dashboard Widget being edited plans its refresh from it.
 export function useExplainQuery(text: string, options: { enabled: boolean }) {
   return useQuery(QueryService.method.explainQuery, textQuery(text), {
     enabled: options.enabled && text !== "",

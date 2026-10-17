@@ -141,8 +141,14 @@ test("a new webhook's signing secret is shown once, and rotating issues another"
   await form.getByRole("button", { name: "Save" }).click();
 
   const issued = page.getByRole("dialog", { name: "Webhook signing secret" });
-  await expect(issued).toContainText("You won't see this again");
-  const secret = issued.getByLabel(`Signing secret for ${url}`);
+  await expect(issued).toContainText("it won't be shown again");
+  // Ridr signs with the secret, so it keeps it, unlike an Ingest key.
+  await expect(issued).not.toContainText("hash");
+  // Only "Done" closes it, so the secret can't be lost by a stray key.
+  await page.keyboard.press("Escape");
+  await expect(issued).toBeVisible();
+  await expect(issued.getByRole("button", { name: `Copy Signing secret for ${url}` })).toBeVisible();
+  const secret = issued.getByLabel(`Signing secret for ${url}`, { exact: true });
   const first = (await secret.textContent()) ?? "";
   expect(first).not.toBe("");
   await issued.getByRole("button", { name: "Done" }).click();

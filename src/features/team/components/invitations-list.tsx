@@ -5,7 +5,7 @@ import { FormError } from "@/components/form-error";
 import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { useRevokeInvitation } from "@/features/team/api/change-team";
-import { useInvitations } from "@/features/team/api/get-team";
+import { useInvitations } from "@/features/team/api/get-invitations";
 import { roleLabel, scopeText } from "@/features/team/components/describe";
 import { Can } from "@/lib/me";
 

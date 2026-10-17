@@ -2,7 +2,7 @@ import type { AlertState } from "@ridr/web";
 import { useState } from "react";
 import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { openStates, useAlerts } from "@/features/alerts/api/get-alerts";
+import { openStates, useAlerts } from "@/lib/api/alerts";
 import { AlertsTable } from "@/features/alerts/components/alerts-table";
 import { ScopeNote } from "@/features/alerts/components/scope-note";
 
@@ -44,7 +44,7 @@ export function AlertsScreen() {
 // FilteredAlerts fetches one filter's Alerts; each filter is its own cache
 // entry, so switching back shows the last answer at once.
 function FilteredAlerts({ states }: { states: AlertState[] }) {
-  const alerts = useAlerts(states);
+  const alerts = useAlerts({ states });
   return (
     <QueryView
       query={alerts}

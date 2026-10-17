@@ -6,11 +6,11 @@ import { AttributeEditor } from "@/components/attribute-editor";
 import { TrackMap } from "@/components/map/track-map";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAssets } from "@/features/assets/api/get-assets";
-import { sortMetrics, useMetrics } from "@/features/catalog/api/metrics";
-import { useUnits } from "@/features/catalog/api/units";
-import { useContactGroups } from "@/features/contact-groups/api/get-contact-groups";
-import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
+import { useAssets } from "@/lib/api/registry";
+import { sortMetrics, useMetrics } from "@/lib/api/catalog";
+import { useUnits } from "@/lib/api/catalog";
+import { useContactGroups } from "@/lib/api/contact-groups";
+import { useControlledKeys } from "@/lib/api/registry";
 import {
   antimeridianProblem,
   draftProblems,

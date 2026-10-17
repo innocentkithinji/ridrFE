@@ -3,7 +3,7 @@ import { useId, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useMetrics, useUnits } from "@/features/data-sources/api/catalog";
+import { useMetrics, useUnits } from "@/lib/api/catalog";
 import { useCorrectMeasurements } from "@/features/data-sources/api/correct-measurements";
 import type { AdapterSectionProps } from "@/features/data-sources/components/adapter-screen";
 import { Field, Section } from "@/features/data-sources/components/section";

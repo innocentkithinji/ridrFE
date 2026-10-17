@@ -1,9 +1,12 @@
+import { lazy } from "react";
 import { DashboardService } from "@ridr/web";
 import { useParams, useSearchParams } from "react-router";
 import { RequirePermission } from "@/components/require-permission";
-import { DashboardScreen } from "@/features/dashboards/components/dashboard-screen";
-import { DashboardsScreen } from "@/features/dashboards/components/dashboards-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const DashboardScreen = lazy(() => import("@/features/dashboards/components/dashboard-screen").then((m) => ({ default: m.DashboardScreen })));
+const DashboardsScreen = lazy(() => import("@/features/dashboards/components/dashboards-screen").then((m) => ({ default: m.DashboardsScreen })));
 
 export const dashboardsPath = "/dashboards";
 

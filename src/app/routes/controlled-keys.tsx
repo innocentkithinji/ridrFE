@@ -1,7 +1,10 @@
+import { lazy } from "react";
 import { RegistryService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
-import { ControlledKeysList } from "@/features/controlled-keys/components/controlled-keys-list";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const ControlledKeysList = lazy(() => import("@/features/controlled-keys/components/controlled-keys-list").then((m) => ({ default: m.ControlledKeysList })));
 
 export const controlledKeysPath = "/settings/controlled-keys";
 

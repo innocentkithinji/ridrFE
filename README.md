@@ -21,8 +21,17 @@ Read first, all in the backend checkout beside this one:
 Check out [`innocentkithinji/ridr`](https://github.com/innocentkithinji/ridr)
 as `../Ridr`, beside this repo. `@ridr/web` is installed from its
 `sdk/web` ([ADR 0002](docs/adr/0002-sdk-from-sibling-checkout.md)), copied
-rather than linked (`.npmrc`), so after rebuilding the SDK run
-`npm install` again.
+rather than linked (`.npmrc`). After rebuilding the SDK, `npm install`
+alone keeps the old copy, and Vite keeps its prebundled one (errors such
+as "does not provide an export named 'PreferenceService'"), so refresh
+both:
+
+```sh
+npm --prefix ../Ridr/sdk/web run build
+rm -rf node_modules/@ridr/web node_modules/.vite && npm install
+```
+
+then restart `npm run dev`.
 
 ```sh
 # in ../Ridr
@@ -150,7 +159,7 @@ src/
     clerk-session.tsx   the Session from Clerk: sign-in, Organisation picker, switcher
     dev-session.tsx     the Session from the dev token
     me-provider.tsx     holds screens back until GetMe answers
-    routes/             one thin file per route: reads params, renders a feature
+    routes/             one thin file per route: reads params, renders a feature screen loaded lazily
   components/
     charts/             TimeSeriesChart and the series it draws; the palette
     map/                TrackMap: MapLibre and OpenFreeMap, loaded lazily; Tracks of Locations, an area
@@ -170,6 +179,7 @@ src/
     api/                one hook per procedure: get-<things>.ts, <verb>-<thing>.ts
     components/         the feature's screens and parts
   lib/                  Session, transport, query cache, useMe/useCan/permissionOf, errors, theme
+  lib/api/              hooks more than one feature uses, one file per Ridr service (registry.ts, catalog.ts…)
   config/env.ts         VITE_ settings
   config/sign-in.ts     why a production build may not go out (read by vite.config.ts)
 e2e/                    Playwright tests, one file per feature
@@ -182,7 +192,9 @@ wrangler.jsonc          Cloudflare: the build in dist/ as static assets, SPA fal
 1. **Hooks** in `src/features/<feature>/api/`: one `useQuery` or
    `useMutation` per procedure over the generated `@ridr/web` method, with
    the cache keys and invalidations its feature page names. Only `api/`
-   files call Ridr.
+   files call Ridr. A hook a second feature needs moves to
+   `src/lib/api/<service>.ts` (one file per Ridr service), never imported
+   across features: `npm run lint` fails on a feature importing another.
    A live view (Readings that keep arriving) uses
    `useLiveQuery(text)` from `@/lib/use-live-query` instead: it fills the
    same cache entry `RunQuery` would and reports a `status`; pass its

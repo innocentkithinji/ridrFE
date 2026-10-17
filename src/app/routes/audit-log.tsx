@@ -1,7 +1,10 @@
+import { lazy } from "react";
 import { AuditService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
-import { AuditLogScreen } from "@/features/audit-log/components/audit-log-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const AuditLogScreen = lazy(() => import("@/features/audit-log/components/audit-log-screen").then((m) => ({ default: m.AuditLogScreen })));
 
 export const auditLogPath = "/settings/audit-log";
 

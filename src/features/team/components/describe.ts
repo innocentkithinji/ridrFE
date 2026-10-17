@@ -25,6 +25,3 @@ export function scopeText(scope: Scope | undefined): string {
   return conditions.map((c) => `${c.key}: ${c.values.join(", ")}`).join("; ");
 }
 
-// The roles and Permissions each grants, beside every Role picker.
-export const permissionsTableUrl =
-  "https://github.com/innocentkithinji/ridr/blob/main/docs/frontend/reference/permissions.md";

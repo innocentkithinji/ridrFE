@@ -9,7 +9,7 @@ import { TrackMap } from "@/components/map/track-map";
 import { locationTracks } from "@/components/map/tracks";
 import { Button } from "@/components/ui/button";
 import { QueryService } from "@ridr/web";
-import { useExplainQuery } from "@/features/dashboards/api/explain-query";
+import { useExplainQuery } from "@/lib/api/query";
 import { useWidgetResult } from "@/features/dashboards/api/widget-result";
 import { EventsList } from "@/features/dashboards/components/events-list";
 import { StatView } from "@/features/dashboards/components/stat-view";
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 // The class the grid drags a Widget by: its header.
 export const widgetHandle = "widget-handle";
 
-type WidgetCardProps = {
+type WidgetViewProps = {
   widget: WidgetDraft;
   // Where a save said this Widget's Query is wrong, if it did.
   problem?: QueryProblem | null;
@@ -31,10 +31,10 @@ type WidgetCardProps = {
   onRemove?: () => void;
 };
 
-// WidgetCard is one Widget on a Dashboard: its title, and its own Query's
+// WidgetView is one Widget on a Dashboard: its title, and its own Query's
 // answer drawn as its Visualization, with its own loading, empty and
 // error states, so one failing Widget never affects the others.
-export function WidgetCard({ widget, problem, onEdit, onRemove }: WidgetCardProps) {
+export function WidgetView({ widget, problem, onEdit, onRemove }: WidgetViewProps) {
   const canExplain = useCan(QueryService.method.explainQuery);
   const explain = useExplainQuery(widget.text, { enabled: canExplain && !widget.understood });
   const understood = widget.understood ?? explain.data?.query;

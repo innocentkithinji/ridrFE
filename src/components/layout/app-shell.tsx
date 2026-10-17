@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import type { NavGroup, NavItem } from "@/components/layout/nav-types";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -16,6 +17,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Loading } from "@/components/states";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsScoped, useMe } from "@/lib/me";
 
@@ -49,7 +51,10 @@ export function AppShell({ nav }: { nav: NavGroup[] }) {
             <ThemeToggle />
           </header>
           <main className="flex-1 p-4 md:p-6">
-            <Outlet />
+            {/* Most route screens load lazily (src/app/routes). */}
+            <Suspense fallback={<Loading what="the page" />}>
+              <Outlet />
+            </Suspense>
           </main>
         </SidebarInset>
       </SidebarProvider>

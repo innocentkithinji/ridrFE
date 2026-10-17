@@ -5,7 +5,8 @@ import { ConnectorService, MqttBridgeState, type MqttBridge } from "@ridr/web";
 // while one isn't connected its status refetches this often.
 const statusRefetchMs = 10_000;
 
-function settling(bridge: MqttBridge): boolean {
+// settling tells whether a bridge is still trying to connect.
+export function settling(bridge: MqttBridge): boolean {
   return (
     bridge.adapter?.retiredAt === undefined &&
     bridge.status?.state !== MqttBridgeState.CONNECTED
@@ -13,13 +14,14 @@ function settling(bridge: MqttBridge): boolean {
 }
 
 // useMqttBridges lists every MQTT bridge, refetching while any isn't
-// connected. Cached by method key. An Adapter is an MQTT bridge when this
-// list holds its ID.
-export function useMqttBridges() {
+// connected. Data sources manage them; Home credits the open data they
+// bring in. An Adapter is an MQTT bridge when this list holds its ID.
+export function useMqttBridges(options: { enabled?: boolean } = {}) {
   return useQuery(
     ConnectorService.method.listMqttBridges,
     {},
     {
+      enabled: options.enabled,
       refetchInterval: (query) =>
         query.state.data?.bridges.some(settling) ? statusRefetchMs : false,
     },
@@ -37,7 +39,6 @@ export function useIsMqttBridge(adapterId: string, enabled = true) {
 }
 
 // useMqttBridge reads one bridge, refetching while it isn't connected.
-// Cached by method key and request.
 export function useMqttBridge(adapterId: string) {
   return useQuery(
     ConnectorService.method.getMqttBridge,

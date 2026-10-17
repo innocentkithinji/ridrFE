@@ -176,6 +176,9 @@ test("each Silence lists the Alerts it held back", async ({ page, request }) => 
     }).toPass({ timeout: 60_000 });
     await expect(heldBack).toContainText("Demo medicine fridge");
   } finally {
+    // Disabling resolves the Rule's open Alerts; deleting alone would
+    // leave them firing on Home for good.
+    await call(request, "RuleService/DisableRule", { ruleId: rule.id });
     await call(request, "RuleService/DeleteRule", { ruleId: rule.id });
     await call(request, "SilenceService/EndSilence", { silenceId: silence.id });
   }

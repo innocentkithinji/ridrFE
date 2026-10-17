@@ -5,7 +5,7 @@ import { Link } from "react-router";
 import { Empty, QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAssets } from "@/features/assets/api/get-assets";
+import { useAssets } from "@/lib/api/registry";
 import { AssetFormSheet } from "@/features/assets/components/asset-form";
 import { AssetsList } from "@/features/assets/components/assets-list";
 import { Can, useCan, useIsScoped } from "@/lib/me";

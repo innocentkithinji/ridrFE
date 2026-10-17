@@ -1,8 +1,11 @@
+import { lazy } from "react";
 import { RegistryService } from "@ridr/web";
 import { useParams } from "react-router";
 import { RequirePermission } from "@/components/require-permission";
-import { AssetDetailScreen } from "@/features/assets/components/asset-detail-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const AssetDetailScreen = lazy(() => import("@/features/assets/components/asset-detail-screen").then((m) => ({ default: m.AssetDetailScreen })));
 
 export const assetDetailPath = "/assets/:assetId";
 

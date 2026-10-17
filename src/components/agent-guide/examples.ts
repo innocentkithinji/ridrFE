@@ -46,25 +46,33 @@ func main() {
 	defer stop()
 	go agent.Run(ctx) // sends what is queued every second
 
+	// Each Queue call fails only when the queue is full (Ridr out of reach
+	// for long); the reading is then dropped.
 	tags := map[string]string{"route": "46"}
-	agent.QueueMeasurement(ridr.Measurement{
-		DeviceID: "van-1",
-		Metric:   "temperature",
-		Value:    4.2,
-		Tags:     tags,
-	})
-	agent.QueueLocation(ridr.Location{
-		DeviceID:  "van-1",
-		Latitude:  -1.2921,
-		Longitude: 36.8219,
-		Accuracy:  ridr.Metres(5),
-		Tags:      tags,
-	})
-	agent.QueueEvent(ridr.Event{
-		DeviceID: "van-1",
-		Name:     "door_opened",
-		Fields:   map[string]string{"door": "rear"},
-	})
+	for _, err := range []error{
+		agent.QueueMeasurement(ridr.Measurement{
+			DeviceID: "van-1",
+			Metric:   "temperature",
+			Value:    4.2,
+			Tags:     tags,
+		}),
+		agent.QueueLocation(ridr.Location{
+			DeviceID:  "van-1",
+			Latitude:  -1.2921,
+			Longitude: 36.8219,
+			Accuracy:  ridr.Metres(5),
+			Tags:      tags,
+		}),
+		agent.QueueEvent(ridr.Event{
+			DeviceID: "van-1",
+			Name:     "door_opened",
+			Fields:   map[string]string{"door": "rear"},
+		}),
+	} {
+		if err != nil {
+			slog.Warn("reading not queued", "err", err)
+		}
+	}
 
 	<-ctx.Done()
 	// The last flush before exit, with a few seconds to finish.
@@ -96,23 +104,26 @@ sender = threading.Thread(target=agent.run, args=(stop,))
 sender.start()  # sends what is queued every second
 
 tags = {"route": "46"}
-agent.queue_measurement(
-    ridr.Measurement(
-        device_id="van-1", metric="temperature", value=4.2, tags=tags
+try:
+    agent.queue_measurement(
+        ridr.Measurement(
+            device_id="van-1", metric="temperature", value=4.2, tags=tags
+        )
     )
-)
-agent.queue_location(
-    ridr.Location(
-        device_id="van-1",
-        latitude=-1.2921,
-        longitude=36.8219,
-        accuracy=5,
-        tags=tags,
+    agent.queue_location(
+        ridr.Location(
+            device_id="van-1",
+            latitude=-1.2921,
+            longitude=36.8219,
+            accuracy=5,
+            tags=tags,
+        )
     )
-)
-agent.queue_event(
-    ridr.Event(device_id="van-1", name="door_opened", fields={"door": "rear"})
-)
+    agent.queue_event(
+        ridr.Event(device_id="van-1", name="door_opened", fields={"door": "rear"})
+    )
+except ridr.QueueFullError as error:  # Ridr out of reach for long
+    print(f"reading not queued: {error}")
 
 stop.set()
 sender.join()
@@ -123,7 +134,8 @@ except ridr.RidrError as error:
 `;
 
 const typescript = `// An Agent for the Adapter {{ADAPTER_ID}}: a delivery van that reports
-// its fridge temperature, position and door events to Ridr.
+// its fridge temperature, position and door events to Ridr. The SDK is
+// an ES module, so run this as one (agent.mts, or "type": "module").
 import { Agent } from "@ridr/sdk";
 
 const agent = new Agent({
@@ -138,9 +150,13 @@ process.once("SIGINT", () => stop.abort());
 const running = agent.run(stop.signal); // sends what is queued every second
 
 const tags = { route: "46" };
-agent.queueMeasurement({ deviceId: "van-1", metric: "temperature", value: 4.2, tags });
-agent.queueLocation({ deviceId: "van-1", latitude: -1.2921, longitude: 36.8219, accuracy: 5, tags });
-agent.queueEvent({ deviceId: "van-1", name: "door_opened", fields: { door: "rear" } });
+try {
+  agent.queueMeasurement({ deviceId: "van-1", metric: "temperature", value: 4.2, tags });
+  agent.queueLocation({ deviceId: "van-1", latitude: -1.2921, longitude: 36.8219, accuracy: 5, tags });
+  agent.queueEvent({ deviceId: "van-1", name: "door_opened", fields: { door: "rear" } });
+} catch (err) {
+  console.warn("reading not queued:", err); // a QueueFullError: Ridr out of reach for long
+}
 
 await running;
 try {
@@ -154,7 +170,10 @@ export const examples: Example[] = [
   {
     language: "go",
     label: "Go",
-    install: "go get github.com/innocentkithinji/ridr/sdk/go/ridr",
+    install: [
+      "# needs Go 1.27+; the Ridr repository is private, so Go fetches it with your Git credentials",
+      "GOPRIVATE=github.com/innocentkithinji/ridr go get github.com/innocentkithinji/ridr/sdk/go/ridr",
+    ].join("\n"),
     code: go,
   },
   {

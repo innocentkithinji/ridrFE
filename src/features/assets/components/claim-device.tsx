@@ -17,8 +17,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAssignDevice } from "@/features/assets/api/change-assignment";
 import { useCreateAsset } from "@/features/assets/api/change-asset";
-import { useAssets } from "@/features/assets/api/get-assets";
-import { useControlledKeys } from "@/features/controlled-keys/api/get-controlled-keys";
+import { useAssets } from "@/lib/api/registry";
+import { useControlledKeys } from "@/lib/api/registry";
 import {
   attributeProblems,
   attributesOf,

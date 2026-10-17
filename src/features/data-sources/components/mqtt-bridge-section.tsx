@@ -6,7 +6,7 @@ import { DataCredit } from "@/components/data-credit";
 import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { useDeleteMqttBridge } from "@/features/data-sources/api/delete-mqtt-bridge";
-import { useIsMqttBridge, useMqttBridge } from "@/features/data-sources/api/get-mqtt-bridges";
+import { useIsMqttBridge, useMqttBridge } from "@/lib/api/connectors";
 import type { AdapterSectionProps } from "@/features/data-sources/components/adapter-screen";
 import { BridgeStatus } from "@/features/data-sources/components/bridge-status";
 import { EditMqttBridgeForm } from "@/features/data-sources/components/edit-mqtt-bridge-form";

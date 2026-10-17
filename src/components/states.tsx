@@ -45,15 +45,16 @@ export function Empty({ children }: { children: ReactNode }) {
 }
 
 // PermissionDenied is a screen's state when GetMe lacks its Permission,
-// or the server refused the load.
-export function PermissionDenied({ what }: { what: string }) {
+// or the server refused the load. `by` names what refuses: the user's
+// Role (the default) or their Scope.
+export function PermissionDenied({ what, by = "Role" }: { what: string; by?: "Role" | "Scope" }) {
   return (
     <StateFrame
       role="alert"
       icon={<ShieldOff className="size-8" aria-hidden />}
       title="No access"
     >
-      Your Role doesn't let you see {what}. Ask an admin for access.
+      Your {by} doesn't let you see {what}. Ask an admin for access.
     </StateFrame>
   );
 }

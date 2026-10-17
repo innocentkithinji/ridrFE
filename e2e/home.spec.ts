@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { signInAs } from "./users";
 
 const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
 const token = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
@@ -13,8 +14,9 @@ async function call(request: APIRequestContext, procedure: string, body: object 
 }
 
 // withMe edits the dev user's real GetMe answer, standing in for a user
-// with fewer Permissions or a Scope.
-async function withMe(page: Page, edit: (me: { permissions: string[]; scope?: unknown }) => void) {
+// with fewer Permissions. A Scope comes from the real scoped user
+// (e2e/users.ts).
+async function withMe(page: Page, edit: (me: { permissions: string[] }) => void) {
   await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
     const response = await route.fetch();
     const me = await response.json();
@@ -74,6 +76,31 @@ test("open Alerts poll every 15 s and link to their detail", async ({ page, requ
 
   await panel.getByRole("link", { name: alert.asset }).first().click();
   await expect(page).toHaveURL(`/alerts/${alert.id}`);
+});
+
+test("a burst of open Alerts shows the newest 10 and links to all of them", async ({ page, request }) => {
+  const { alerts } = await call(request, "AlertService/ListAlerts", {});
+  const alert = alerts[0];
+  const burst = Array.from({ length: 25 }, (_, i) => ({
+    ...alert,
+    id: `${alert.id.slice(0, -2)}${String(i).padStart(2, "0")}`,
+    ruleName: `Burst ${String(i).padStart(2, "0")}`,
+    state: "ALERT_STATE_FIRING",
+  }));
+  await page.route("**/ridr.v1.AlertService/ListAlerts", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { alerts: burst } });
+  });
+  await page.goto("/");
+
+  const panel = page.getByRole("region", { name: "Open Alerts" });
+  const rows = panel.getByRole("table", { name: "Open Alerts" }).getByRole("row");
+  // A header row and the 10 newest, which Ridr lists first.
+  await expect(rows).toHaveCount(11);
+  await expect(rows.nth(1)).toContainText("Burst 00");
+  await expect(panel).not.toContainText("Burst 10");
+  await panel.getByRole("link", { name: "View all 25 open Alerts" }).click();
+  await expect(page).toHaveURL("/alerts");
 });
 
 test("Device health shows live, silent and Unclaimed devices", async ({ page, request }) => {
@@ -140,9 +167,7 @@ test("without ListMqttBridges Home shows no data credit", async ({ page }) => {
 });
 
 test("a scoped user sees a Scope note on each panel and no Unclaimed devices", async ({ page }) => {
-  await withMe(page, (me) => {
-    me.scope = { conditions: [{ key: "colour", values: ["blue"] }] };
-  });
+  await signInAs(page, "scoped");
   await page.goto("/");
   for (const panel of panels) {
     await expect(page.getByRole("region", { name: panel })).toBeVisible();

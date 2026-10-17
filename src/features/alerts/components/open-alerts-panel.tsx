@@ -1,7 +1,7 @@
 import { AlertService } from "@ridr/web";
 import { Link } from "react-router";
 import { QueryView } from "@/components/states";
-import { useOpenAlerts } from "@/features/alerts/api/get-alerts";
+import { openStates, useAlerts } from "@/lib/api/alerts";
 import { AlertsTable } from "@/features/alerts/components/alerts-table";
 import { useCan } from "@/lib/me";
 
@@ -12,7 +12,11 @@ type OpenAlertsPanelProps = {
   title?: string;
 };
 
-// OpenAlertsPanel lists open Alerts newest first, polling every 15 s, for
+// A burst of Alerts mustn't stretch the screen the panel sits on: it
+// shows this many, newest first, and links to the inbox for the rest.
+const shownAlerts = 10;
+
+// OpenAlertsPanel lists the newest open Alerts, polling every 15 s, for
 // screens beside the inbox (Home, an Asset's detail). It shows nothing to
 // users who may not list Alerts.
 export function OpenAlertsPanel({ assetId = "", title = "Open Alerts" }: OpenAlertsPanelProps) {
@@ -23,7 +27,7 @@ export function OpenAlertsPanel({ assetId = "", title = "Open Alerts" }: OpenAle
 }
 
 function OpenAlerts({ assetId, title }: Required<OpenAlertsPanelProps>) {
-  const alerts = useOpenAlerts(assetId);
+  const alerts = useAlerts({ states: openStates, assetId });
   return (
     <section aria-label={title} className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
@@ -38,7 +42,16 @@ function OpenAlerts({ assetId, title }: Required<OpenAlertsPanelProps>) {
         empty="No open Alerts."
         isEmpty={(answer) => answer.alerts.length === 0}
       >
-        {(answer) => <AlertsTable alerts={answer.alerts} label={title} />}
+        {(answer) => (
+          <>
+            <AlertsTable alerts={answer.alerts.slice(0, shownAlerts)} label={title} />
+            {answer.alerts.length > shownAlerts && (
+              <Link to="/alerts" className="text-muted-foreground hover:text-foreground text-sm underline">
+                View all {answer.alerts.length} open Alerts
+              </Link>
+            )}
+          </>
+        )}
       </QueryView>
     </section>
   );

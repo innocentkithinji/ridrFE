@@ -1,6 +1,7 @@
 import { AccessService } from "@ridr/web";
 import { InvitationsList } from "@/features/team/components/invitations-list";
 import { InviteForm } from "@/features/team/components/invite-form";
+import { RolesSummary } from "@/features/team/components/roles-summary";
 import { MembersList } from "@/features/team/components/members-list";
 import { Can, useIsScoped } from "@/lib/me";
 
@@ -15,6 +16,7 @@ export function TeamScreen() {
         {scoped && (
           <p className="text-muted-foreground text-sm">You see people within your Scope only</p>
         )}
+        <RolesSummary />
       </div>
       <MembersList />
       <Can method={AccessService.method.listInvitations}>

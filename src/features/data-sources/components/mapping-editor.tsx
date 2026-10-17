@@ -10,7 +10,7 @@ import { Plus, X } from "lucide-react";
 import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useMetrics, useUnits } from "@/features/data-sources/api/catalog";
+import { useMetrics, useUnits } from "@/lib/api/catalog";
 import { useNewestRawPayload } from "@/features/data-sources/api/get-raw-payloads";
 import { usePreviewMapping, useSetMapping } from "@/features/data-sources/api/set-mapping";
 import { Field } from "@/features/data-sources/components/section";

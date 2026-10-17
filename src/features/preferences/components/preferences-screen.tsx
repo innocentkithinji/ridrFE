@@ -1,7 +1,7 @@
 import { ConnectError } from "@connectrpc/connect";
 import { useState } from "react";
 import { ErrorState, Loading } from "@/components/states";
-import { unitsByQuantityKind, useUnits, type QuantityKindUnits } from "@/features/catalog/api/units";
+import { unitsByQuantityKind, useUnits, type QuantityKindUnits } from "@/lib/api/catalog";
 import { messageFor } from "@/lib/errors";
 import { unitLabel } from "@/lib/units";
 import {
