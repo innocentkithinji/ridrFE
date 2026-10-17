@@ -1,11 +1,23 @@
+/node_modules
+/dist
 /tmp
 /out-tsc
+*.local
+.env.local
 
-/node_modules
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-/.pnp
-.pnp.js
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Editors
+.idea/
 .vscode/*
+.DS_Store
+
+# Wrangler
+/.wrangler/
+*.tsbuildinfo
