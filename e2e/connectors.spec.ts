@@ -91,3 +91,20 @@ test("a new Ingest key on a Webhook connector shows its full new URL once", asyn
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(page.getByText(url)).toHaveCount(0);
 });
+
+test("in a browser that didn't create a Webhook connector, a new key explains the missing URL", async ({ page }) => {
+  const name = unique("webhook elsewhere");
+  await startAdding(page, /Webhook connector/, name);
+  await page.getByRole("dialog").getByRole("button", { name: "Done" }).click();
+  // Another browser: nothing remembered from the connector's creation.
+  await page.evaluate(() => localStorage.clear());
+  await page.getByRole("link", { name: `Open ${name}` }).click();
+
+  await page.getByRole("region", { name: "Ingest keys" }).getByRole("button", { name: "Create Ingest key" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("Ingest key", { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel("Webhook URL", { exact: true })).toHaveCount(0);
+  await expect(dialog).toContainText(
+    "If this is a Webhook connector, its new URL is its old one with this key in place of the last part",
+  );
+});
