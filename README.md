@@ -21,8 +21,17 @@ Read first, all in the backend checkout beside this one:
 Check out [`innocentkithinji/ridr`](https://github.com/innocentkithinji/ridr)
 as `../Ridr`, beside this repo. `@ridr/web` is installed from its
 `sdk/web` ([ADR 0002](docs/adr/0002-sdk-from-sibling-checkout.md)), copied
-rather than linked (`.npmrc`), so after rebuilding the SDK run
-`npm install` again.
+rather than linked (`.npmrc`). After rebuilding the SDK, `npm install`
+alone keeps the old copy, and Vite keeps its prebundled one (errors such
+as "does not provide an export named 'PreferenceService'"), so refresh
+both:
+
+```sh
+npm --prefix ../Ridr/sdk/web run build
+rm -rf node_modules/@ridr/web node_modules/.vite && npm install
+```
+
+then restart `npm run dev`.
 
 ```sh
 # in ../Ridr
