@@ -1,5 +1,6 @@
 import type { FeatureCollection, LineString, Point } from "geojson";
 import { LngLatBounds, type GeoJSONSource, type GeoJSONSourceDiff, type Map as MapLibre } from "maplibre-gl";
+import { fitMaxZoom, fitPadding, trackColor } from "@/components/map/canvas";
 import { latestOf, type GeoPolygon, type Track } from "@/components/map/tracks";
 
 // The colours one theme draws Tracks in.
@@ -109,7 +110,7 @@ export class TrackLayers {
       const now = latestOf(track);
       if (!now) return;
       seen.add(track.id);
-      const color = tracks.length <= look.colors.length ? look.colors[index] : look.fleet;
+      const color = trackColor(look, index, tracks.length);
       const before = this.sent.get(track.id);
       if (before && before.count === track.points.length && before.last === now.time && before.color === color) {
         return;
@@ -171,7 +172,7 @@ export class TrackLayers {
       for (const point of track.points) bounds.extend([point.longitude, point.latitude]);
     }
     if (bounds.isEmpty()) return;
-    this.map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
+    this.map.fitBounds(bounds, { padding: fitPadding, maxZoom: fitMaxZoom, duration: 0 });
   }
 
   private source(id: string) {

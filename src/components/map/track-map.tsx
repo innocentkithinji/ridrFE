@@ -1,4 +1,5 @@
 import { lazy, Suspense, useId, useState } from "react";
+import { googleMaps } from "@/components/map/google-config";
 import type { TrackShow } from "@/components/map/track-layers";
 import {
   crossesAntimeridian,
@@ -20,8 +21,9 @@ import { useTheme } from "@/lib/theme";
 // the Tracks it showed remains (a different Query), so live appends don't
 // move a view the user has panned.
 //
-// The map library loads in its own chunk the first time a TrackMap
-// renders; screens without a map never load it.
+// The base map is Google Maps when the app is configured for it, else
+// the keyless OpenFreeMap map (ADR 0003). Either loads in its own chunk
+// the first time a TrackMap renders; screens without a map never load it.
 
 export type TrackMapProps = {
   tracks: readonly Track[];
@@ -48,7 +50,9 @@ export type MapArea = {
   onChange?: (polygon: GeoPolygon | null) => void;
 };
 
-const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
+const MapCanvas = lazy(() =>
+  googleMaps ? import("@/components/map/google-canvas") : import("@/components/map/map-canvas"),
+);
 
 export function TrackMap({ tracks, label, show = "tracks", stale = false, area, height = 360 }: TrackMapProps) {
   const { resolved: theme } = useTheme();

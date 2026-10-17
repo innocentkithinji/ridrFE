@@ -108,6 +108,43 @@ first: the demo signs in with the dev token, which Clerk turns off.
    signs in with the dev token, and the network tab shows no request
    for Clerk's code.
 
+## Google Maps
+
+Maps are drawn on Google Maps when `VITE_GOOGLE_MAPS_API_KEY` and
+`VITE_GOOGLE_MAP_ID` are set, and on the keyless OpenFreeMap base map
+when they aren't ([ADR 0003](docs/adr/0003-google-maps-with-keyless-fallback.md)).
+Zoomed in past 17, a Google map tilts into 3D, with buildings; zooming
+back out flattens it. Playwright and CI run without a key, so test runs
+never use Google's allowance.
+
+Google bills each map load, past a free allowance (10,000 a month for
+these maps, at the time of writing). Panning, zooming and tilting are not
+loads, and the app reuses a map rather than make another when a screen
+changes. To keep it free:
+
+1. In the [Google Cloud console](https://console.cloud.google.com/),
+   create a project and link a billing account (Google requires one even
+   within the free allowance).
+2. **APIs & Services → Library**: enable **Maps JavaScript API**.
+3. **Google Maps Platform → Keys & Credentials → Create credentials → API
+   key**. Restrict it to *Websites* (`http://localhost:5173/*`, the other
+   local ports you use, and the deployed site) and to the **Maps
+   JavaScript API** only. The key ships in the app's code, as every
+   Google Maps web key does; the restrictions make a copy useless
+   elsewhere.
+4. **Google Maps Platform → Map management → Create Map ID**: type
+   *JavaScript*, *Vector*, with **Tilt** and **Rotation** on. The app
+   asks the map for light or dark to match its theme; give the Map ID's
+   style a dark variant to choose how dark looks.
+5. **APIs & Services → Maps JavaScript API → Quotas**: cap map loads per
+   day (300 a day stays under 10,000 a month). Past the cap Google
+   refuses to draw rather than bill.
+6. **Billing → Budgets & alerts**: a $1 budget with email alerts, as a
+   backstop (an alert does not stop spending; the cap does).
+
+Then put both in `.env.local` (not committed) and restart `npm run dev`.
+A key Google refuses shows "Google Maps couldn't load" on the map.
+
 ## CI and deploying
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull
@@ -136,6 +173,8 @@ Actions**:
 | `CLOUDFLARE_ACCOUNT_ID` | secret | deploy | The Cloudflare account the Worker `ridr-web` deploys to |
 | `VITE_CLERK_PUBLISHABLE_KEY` | secret | deploy | Clerk publishable key (`pk_live_…`) the deployed app signs in with |
 | `VITE_RIDR_API_URL` | variable | deploy | The Ridr API's public URL; its CORS origins must include the deployed site |
+| `VITE_GOOGLE_MAPS_API_KEY` | secret | deploy | Optional: draw maps on Google Maps ([Google Maps](#google-maps)); without it, OpenFreeMap |
+| `VITE_GOOGLE_MAP_ID` | variable | deploy | Optional: the vector Map ID to go with the key |
 
 The deploy job fails before building if either `VITE_` setting is
 missing. The checks job needs none of them but `RIDR_REPO_TOKEN`: it
@@ -162,7 +201,7 @@ src/
     routes/             one thin file per route: reads params, renders a feature screen loaded lazily
   components/
     charts/             TimeSeriesChart and the series it draws; the palette
-    map/                TrackMap: MapLibre and OpenFreeMap, loaded lazily; Tracks of Locations, an area
+    map/                TrackMap: Google Maps or keyless MapLibre + OpenFreeMap, loaded lazily; Tracks of Locations, an area
     query-editor/       QueryEditor: CodeMirror 6, query-language highlighting, QueryProblem markers
     query-builder/      QueryBuilder: a Query by picking options (Explore, Widget editor); text back through ExplainQuery
     layout/             AppShell (sidebar, user menu, theme toggle), NavItem types

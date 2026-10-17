@@ -2,13 +2,14 @@ import { LngLatBounds, Map as MapLibre, Marker, NavigationControl, setWorkerUrl 
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
-import { palette } from "@/components/charts/palette";
-import { TrackLayers, type TrackLook, type TrackShow } from "@/components/map/track-layers";
-import { wrapLongitude, type GeoPolygon, type Track } from "@/components/map/tracks";
+import { fitMaxZoom, fitPadding, looks, start, type MapCanvasProps } from "@/components/map/canvas";
+import { TrackLayers } from "@/components/map/track-layers";
+import { wrapLongitude, type GeoPolygon } from "@/components/map/tracks";
 
-// MapCanvas is the MapLibre half of TrackMap, in its own chunk because
-// MapLibre is large: only screens that show a map load it. Nothing outside
-// src/components/map knows MapLibre is used.
+// MapCanvas is TrackMap's keyless base map, MapLibre with OpenFreeMap
+// tiles, used when the app isn't configured for Google Maps. It is in
+// its own chunk because MapLibre is large: only screens that show a map
+// load it. Nothing outside src/components/map knows MapLibre is used.
 
 setWorkerUrl(workerUrl);
 
@@ -18,30 +19,6 @@ const styles = {
   light: "https://tiles.openfreemap.org/styles/positron",
   dark: "https://tiles.openfreemap.org/styles/dark",
 } as const;
-
-const looks: Record<"light" | "dark", TrackLook> = {
-  light: { colors: palette.light, fleet: palette.light[0], area: palette.light[1], text: "#1f1f1d", halo: "#ffffff" },
-  dark: { colors: palette.dark, fleet: palette.dark[0], area: palette.dark[1], text: "#e8e7e1", halo: "#0c0c0c" },
-};
-
-// Where the map opens before it has anything to show: Helsinki.
-const start = { center: [24.94, 60.17] as [number, number], zoom: 9 };
-
-export type MapCanvasProps = {
-  tracks: readonly Track[];
-  show: TrackShow;
-  stale: boolean;
-  area: GeoPolygon | null;
-  theme: "light" | "dark";
-  height: number;
-  // Set when the user may change the area: its corners drag, and while
-  // drawing each click on the map adds one. Each change is sent here.
-  onArea?: (polygon: GeoPolygon) => void;
-  drawing: boolean;
-  // Called with false while the base map or its tiles load, true once the
-  // map has drawn.
-  onReady: (ready: boolean) => void;
-};
 
 export default function MapCanvas(props: MapCanvasProps) {
   const { tracks, show, stale, area, theme, height, onReady, onArea, drawing } = props;
@@ -61,7 +38,8 @@ export default function MapCanvas(props: MapCanvasProps) {
     const map = new MapLibre({
       container: element,
       style: styles[first],
-      ...start,
+      center: [start.longitude, start.latitude],
+      zoom: start.zoom,
       attributionControl: { compact: true },
     });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
@@ -77,7 +55,7 @@ export default function MapCanvas(props: MapCanvasProps) {
       if (firstLoad && now.area && now.area.length > 0 && !now.tracks.some((track) => track.points.length > 0)) {
         const bounds = new LngLatBounds();
         for (const corner of now.area) bounds.extend(corner);
-        map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
+        map.fitBounds(bounds, { padding: fitPadding, maxZoom: fitMaxZoom, duration: 0 });
       }
       firstLoad = false;
       setLayers({ map, layers: trackLayers, theme: now.theme });

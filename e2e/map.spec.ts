@@ -135,3 +135,19 @@ test("the map follows the light and dark theme", async ({ page, request }) => {
   expect(errors).toEqual([]);
   await van.retire();
 });
+
+test("without a Google Maps key, maps use the keyless base map and never ask Google", async ({ page, request }) => {
+  const van = await vehicle(request);
+  const google: string[] = [];
+  page.on("request", (sent) => {
+    if (/googleapis\.com|gstatic\.com\/maps/.test(sent.url())) google.push(sent.url());
+  });
+  try {
+    await page.goto(`/explore?q=${encodeURIComponent(van.query)}`);
+    await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
+    await expect(map(page).getByText("OpenStreetMap").first()).toBeAttached();
+    expect(google).toEqual([]);
+  } finally {
+    await van.retire();
+  }
+});
