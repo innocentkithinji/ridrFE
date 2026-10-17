@@ -37,7 +37,8 @@ const sections: ComponentType<AdapterSectionProps>[] = [
 export function AdapterScreen({ adapterId }: { adapterId: string }) {
   const adapter = useAdapter(adapterId);
   if (adapter.isPending) return <Loading what="the data source" />;
-  if (adapter.error) return <ErrorState error={adapter.error} />;
+  // A failed refetch keeps the page, and the Mapping editor on it.
+  if (adapter.error && !adapter.data) return <ErrorState error={adapter.error} />;
   if (!adapter.data) {
     return (
       <NotFound what="Data source">

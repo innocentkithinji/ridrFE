@@ -394,3 +394,41 @@ test("saving a Dashboard clears its draft", async ({ page, request }) => {
   await leaveVia(page, "Dashboards");
   await expect(page).toHaveURL(/\/dashboards$/);
 });
+
+test("a Device with no Measurements keeps saying so through a refetch, never showing Loading again", async ({
+  page,
+  request,
+}) => {
+  test.slow();
+  // A Location only, through the dev Agent Adapter: the Device is
+  // Unclaimed with no Measurement, so its latest Reading is NotFound.
+  const deviceId = `e2e-drafts-${unique()}`;
+  const response = await request.post(`${api}/ridr.v1.IngestService/Ingest`, {
+    headers: { Authorization: "Bearer dev-ingest-key" },
+    data: { locations: [{ deviceId, latitude: 60.17, longitude: 24.94, deviceTime: new Date().toISOString() }] },
+  });
+  expect(response.ok(), await response.text()).toBe(true);
+
+  await page.goto("/devices/unclaimed");
+  const row = page
+    .getByRole("list", { name: "Unclaimed devices" })
+    .getByRole("listitem")
+    .filter({ has: page.getByText(deviceId, { exact: true }) });
+  await expect(row).toContainText("No Measurements yet.");
+
+  // Note any moment the row shows Loading from here on.
+  await row.evaluate((element) => {
+    const seen = { loading: false };
+    (window as unknown as { seen: typeof seen }).seen = seen;
+    new MutationObserver(() => {
+      if (element.textContent?.includes("Loading latest Reading")) seen.loading = true;
+    }).observe(element, { subtree: true, childList: true, characterData: true });
+  });
+  await setVisibility(page, "hidden");
+  await page.waitForTimeout(11_000);
+  await setVisibility(page, "visible");
+  await page.waitForTimeout(1_500);
+
+  await expect(row).toContainText("No Measurements yet.");
+  expect(await page.evaluate(() => (window as unknown as { seen: { loading: boolean } }).seen.loading)).toBe(false);
+});

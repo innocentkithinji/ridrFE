@@ -110,13 +110,14 @@ type QueryViewProps<T> = {
 };
 
 // QueryView shows a query's loading, error or empty state, so each screen
-// writes only what it shows once the data is there.
+// writes only what it shows once the data is there. Data once shown stays
+// through a background refetch, even one that fails.
 export function QueryView<T>(props: QueryViewProps<T>) {
   const { query, isEmpty } = props;
   if (query.isPending) {
     return <Loading what={props.what} />;
   }
-  if (query.error) {
+  if (query.error && query.data === undefined) {
     return <ErrorState error={query.error} />;
   }
   if (query.data === undefined || isEmpty?.(query.data)) {

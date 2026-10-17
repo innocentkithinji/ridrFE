@@ -43,7 +43,9 @@ export function DashboardScreen({ dashboardId, version }: { dashboardId: string;
   const startEditing = !!(useLocation().state as DashboardLocationState | null)?.editing;
 
   if (dashboard.isPending) return <Loading what="the Dashboard" />;
-  if (dashboard.error) {
+  // A failed refetch keeps the Dashboard, and an edit open on it, unless
+  // the Dashboard is gone.
+  if (dashboard.error && (!dashboard.data || dashboard.error.code === Code.NotFound)) {
     if (dashboard.error.code === Code.NotFound) {
       return <NotFound what="Dashboard" message="This Dashboard doesn't exist, or isn't yours to see." />;
     }

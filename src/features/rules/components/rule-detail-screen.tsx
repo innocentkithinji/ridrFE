@@ -45,7 +45,9 @@ export function RuleDetailScreen({ ruleId }: { ruleId: string }) {
   let body: ReactNode;
   if (query.isPending) {
     body = <Loading what="the Rule" />;
-  } else if (query.error) {
+  } else if (query.error && (!query.data || isMissing(query.error))) {
+    // A failed refetch keeps the Rule, and an edit open on it, unless the
+    // Rule is gone.
     body = isMissing(query.error) ? (
       <NotFound what="Rule" message={notFoundMessage} />
     ) : (
