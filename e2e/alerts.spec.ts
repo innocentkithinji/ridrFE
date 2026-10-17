@@ -4,36 +4,84 @@ import { signInAs } from "./users";
 const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
 const token = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
 
-// The demo fires each Rule once per 10-minute cycle, so a test waiting
-// for a firing Alert may wait that long.
-const cycleMs = 11 * 60_000;
-
 type ApiAlert = { id: string; ruleName: string; state: string };
 
-async function listAlerts(request: APIRequestContext, body: object): Promise<ApiAlert[]> {
-  const response = await request.post(`${api}/ridr.v1.AlertService/ListAlerts`, {
-    headers: { Authorization: `Bearer ${token}` },
-    data: body,
+async function call<T = Record<string, unknown>>(
+  request: APIRequestContext,
+  method: string,
+  data: object,
+  bearer = token,
+): Promise<T> {
+  const response = await request.post(`${api}/ridr.v1.${method}`, {
+    headers: { Authorization: `Bearer ${bearer}` },
+    data,
   });
-  expect(response.ok()).toBe(true);
-  return (await response.json()).alerts ?? [];
+  expect(response.ok(), `${method}: ${await response.text()}`).toBe(true);
+  return (await response.json()) as T;
 }
 
-// firingAlert waits until an Alert of ruleName (any Rule when empty) is
-// firing, and returns it.
-async function firingAlert(request: APIRequestContext, ruleName = ""): Promise<ApiAlert> {
-  let found: ApiAlert | undefined;
+// firingAlert gives a test its own firing Alert in seconds, rather than
+// waiting up to 10 minutes for the demo's: a new Adapter's Device reports
+// for a new Asset, a Rule watches that Asset for temperature above 8 °C,
+// and a 12 °C Reading breaks it. cool() sends a 4 °C Reading, which
+// resolves it; remove() disables the Rule (resolving any Alert still
+// open, which deleting alone would leave firing), deletes it and retires
+// the Adapter.
+async function firingAlert(request: APIRequestContext, label: string) {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const ruleName = `${label} ${stamp}`;
+  const deviceId = `e2e-alert-${stamp}`;
+  const { adapter, ingestKey } = await call<{ adapter: { id: string }; ingestKey: { plaintext: string } }>(
+    request,
+    "AdapterService/RegisterAdapter",
+    { name: `e2e-alerts-${stamp}` },
+  );
+  const ingest = (value: number) =>
+    call(
+      request,
+      "IngestService/Ingest",
+      { measurements: [{ deviceId, metric: "temperature", value, unit: "Cel", deviceTime: new Date().toISOString() }] },
+      ingestKey.plaintext,
+    );
+  const { asset } = await call<{ asset: { id: string } }>(request, "RegistryService/CreateAsset", {
+    name: `Alerting fridge ${stamp}`,
+    attributes: { e2e_alert: stamp },
+  });
+  // Ridr registers the Device as it stores its first Reading.
+  await ingest(4);
   await expect
-    .poll(
-      async () => {
-        const alerts = await listAlerts(request, { states: ["ALERT_STATE_FIRING"] });
-        found = alerts.find((a) => !ruleName || a.ruleName === ruleName);
-        return found !== undefined;
-      },
-      { timeout: cycleMs, intervals: [1000] },
-    )
+    .poll(async () => (await call<{ health: string }>(request, "RegistryService/GetDeviceHealth", { deviceId })).health)
+    .not.toBe("DEVICE_HEALTH_NEVER_SEEN");
+  await call(request, "RegistryService/AssignDevice", { deviceId, assetId: asset.id });
+  const { rule } = await call<{ rule: { id: string } }>(request, "RuleService/CreateRule", {
+    rule: {
+      name: ruleName,
+      selector: { e2e_alert: stamp },
+      threshold: { metric: "temperature", operator: "THRESHOLD_OPERATOR_ABOVE", value: 8, unit: "Cel" },
+    },
+  });
+  await ingest(12);
+  let alert: ApiAlert | undefined;
+  await expect
+    .poll(async () => {
+      const { alerts = [] } = await call<{ alerts?: ApiAlert[] }>(request, "AlertService/ListAlerts", {
+        ruleId: rule.id,
+        states: ["ALERT_STATE_FIRING"],
+      });
+      alert = alerts[0];
+      return alert !== undefined;
+    })
     .toBe(true);
-  return found!;
+  return {
+    alert: alert!,
+    ruleName,
+    cool: () => ingest(4),
+    remove: async () => {
+      await call(request, "RuleService/DisableRule", { ruleId: rule.id });
+      await call(request, "RuleService/DeleteRule", { ruleId: rule.id });
+      await call(request, "AdapterService/RetireAdapter", { adapterId: adapter.id });
+    },
+  };
 }
 
 // withoutPermissions takes Permissions out of the dev user's real GetMe
@@ -56,7 +104,8 @@ function stateOf(page: Page) {
 
 // Runs against the demo data (`make demo` in ../Ridr): the simulator makes
 // every demo Rule fire and resolve once in each 10-minute cycle, so the
-// demo always has resolved Alerts and, now and then, a firing one.
+// demo always has resolved Alerts. Tests that need a firing Alert make
+// their own with firingAlert rather than wait for the demo's.
 
 test("the Monitor nav links to the Alerts inbox, which toggles to all Alerts", async ({ page }) => {
   await page.goto("/");
@@ -138,53 +187,57 @@ test("without the list Permission there is no nav link and both paths are denied
   }
 });
 
-test("an editor acknowledges the demo fridge Alert, then sees it resolve", async ({
-  page,
-  request,
-}) => {
-  test.setTimeout(cycleMs + 3 * 60_000);
-  const alert = await firingAlert(request, "Demo medicine fridge above 8 °C");
+test("an editor acknowledges an Alert, then sees it resolve", async ({ page, request }) => {
+  const firing = await firingAlert(request, "Acknowledge me");
+  try {
+    await page.goto(`/alerts/${firing.alert.id}`);
+    await expect(stateOf(page)).toContainText("Firing");
+    await stateOf(page).getByRole("button", { name: "Acknowledge" }).click();
+    await expect(stateOf(page)).toContainText("Acknowledged");
+    await expect(stateOf(page).getByRole("button", { name: "Acknowledge" })).toHaveCount(0);
+    await expect(page.getByRole("definition").nth(3)).toContainText("by ");
 
-  await page.goto(`/alerts/${alert.id}`);
-  await expect(stateOf(page)).toContainText("Firing");
-  await stateOf(page).getByRole("button", { name: "Acknowledge" }).click();
-  await expect(stateOf(page)).toContainText("Acknowledged");
-  await expect(stateOf(page).getByRole("button", { name: "Acknowledge" })).toHaveCount(0);
-  await expect(page.getByRole("definition").nth(3)).toContainText("by ");
-
-  // The fridge cools down and the Rule resolves the Alert; the detail
-  // polls every 15 s.
-  await expect(stateOf(page)).toContainText("Resolved", { timeout: 3 * 60_000 });
-  await expect(stateOf(page).getByRole("button")).toHaveCount(0);
+    // The fridge cools down and the Rule resolves the Alert; the detail
+    // polls every 15 s.
+    await firing.cool();
+    await expect(stateOf(page)).toContainText("Resolved", { timeout: 30_000 });
+    await expect(stateOf(page).getByRole("button")).toHaveCount(0);
+  } finally {
+    await firing.remove();
+  }
 });
 
 test("an editor resolves a firing Alert by hand from the inbox", async ({ page, request }) => {
-  test.setTimeout(cycleMs + 60_000);
-  const alert = await firingAlert(request, "Demo infusion pump battery below 20%");
-
-  await page.goto("/alerts");
-  const row = page.getByRole("table", { name: "Alerts" }).getByRole("row").filter({
-    has: page.locator(`a[href="/alerts/${alert.id}"]`),
-  });
-  await row.getByRole("button", { name: "Resolve" }).click();
-  // Resolved Alerts leave the open inbox, and show as resolved in All.
-  await expect(row).toHaveCount(0);
-  await page.getByRole("group", { name: "Alert filter" }).getByRole("button", { name: "All" }).click();
-  await expect(row).toContainText("Resolved");
-  await expect(row.getByRole("button")).toHaveCount(0);
+  const firing = await firingAlert(request, "Resolve me");
+  try {
+    await page.goto("/alerts");
+    const row = page.getByRole("table", { name: "Alerts" }).getByRole("row").filter({
+      has: page.locator(`a[href="/alerts/${firing.alert.id}"]`),
+    });
+    await row.getByRole("button", { name: "Resolve" }).click();
+    // Resolved Alerts leave the open inbox, and show as resolved in All.
+    await expect(row).toHaveCount(0);
+    await page.getByRole("group", { name: "Alert filter" }).getByRole("button", { name: "All" }).click();
+    await expect(row).toContainText("Resolved");
+    await expect(row.getByRole("button")).toHaveCount(0);
+  } finally {
+    await firing.remove();
+  }
 });
 
 test("a viewer's open Alerts show no actions", async ({ page, request }) => {
-  test.setTimeout(cycleMs + 60_000);
-  await signInAs(page, "viewer");
-  const alert = await firingAlert(request);
+  const firing = await firingAlert(request, "Viewer sees");
+  try {
+    await signInAs(page, "viewer");
+    await page.goto(`/alerts/${firing.alert.id}`);
+    await expect(stateOf(page)).toContainText("Firing");
+    await expect(page.getByRole("button", { name: "Acknowledge" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Resolve" })).toHaveCount(0);
 
-  await page.goto(`/alerts/${alert.id}`);
-  await expect(stateOf(page)).toContainText(/Firing|Acknowledged/);
-  await expect(page.getByRole("button", { name: "Acknowledge" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Resolve" })).toHaveCount(0);
-
-  await page.goto("/alerts");
-  await expect(page.getByRole("table", { name: "Alerts" }).getByRole("row")).not.toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Acknowledge|Resolve/ })).toHaveCount(0);
+    await page.goto("/alerts");
+    await expect(page.locator(`a[href="/alerts/${firing.alert.id}"]`).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /Acknowledge|Resolve/ })).toHaveCount(0);
+  } finally {
+    await firing.remove();
+  }
 });
