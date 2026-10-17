@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { useCreateRule } from "@/features/rules/api/change-rule";
-import { newDraft, ruleOf } from "@/features/rules/components/rule-draft";
+import { newDraft, ruleDraftKey, ruleOf } from "@/features/rules/components/rule-draft";
 import { RuleForm } from "@/features/rules/components/rule-form";
 import { ScopeNote } from "@/features/rules/components/scope-note";
 import { BackToRules } from "@/features/rules/components/back-to-rules";
@@ -18,12 +18,11 @@ export function NewRuleScreen() {
       <h1 className="text-2xl font-semibold tracking-tight">New Rule</h1>
       <ScopeNote />
       <RuleForm
+        draftKey={ruleDraftKey()}
         initial={newDraft(scopeRows)}
         submitLabel="Create Rule"
-        save={async (draft) => {
-          const { rule } = await create.mutateAsync({ rule: ruleOf(draft) });
-          await navigate(rule ? `/rules/${rule.id}` : "/rules");
-        }}
+        save={(draft) => create.mutateAsync({ rule: ruleOf(draft) })}
+        onSaved={({ rule }) => void navigate(rule ? `/rules/${rule.id}` : "/rules")}
         onCancel={() => void navigate("/rules")}
       />
     </section>

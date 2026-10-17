@@ -1,4 +1,4 @@
-import { Code, ConnectError } from "@connectrpc/connect";
+import { ConnectError } from "@connectrpc/connect";
 import { QueryService, RegistryService, type Assignment } from "@ridr/web";
 import { HealthBadge } from "@/components/device-health";
 import { withUnit } from "@/lib/units";
@@ -79,9 +79,7 @@ function LatestReading({ deviceId }: { deviceId: string }) {
   if (latest.error) {
     return (
       <Muted>
-        {ConnectError.from(latest.error).code === Code.NotFound
-          ? "No Measurements yet."
-          : messageFor(latest.error)}
+        {messageFor(ConnectError.from(latest.error))}
       </Muted>
     );
   }

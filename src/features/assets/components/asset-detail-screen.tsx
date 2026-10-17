@@ -20,7 +20,8 @@ export function AssetDetailScreen({ assetId }: { assetId: string }) {
   if (query.isPending) {
     return <Loading what="the Asset" />;
   }
-  if (query.error) {
+  // A failed refetch keeps the Asset shown, unless it is gone.
+  if (query.error && (!query.data || isMissing(query.error))) {
     return isMissing(query.error) ? (
       <NotFound what="Asset" message="This Asset doesn't exist, or isn't yours to see." />
     ) : (

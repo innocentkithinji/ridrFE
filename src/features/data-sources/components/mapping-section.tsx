@@ -1,7 +1,7 @@
 import { ConnectorService } from "@ridr/web";
 import { useState } from "react";
 import { ErrorState, Loading } from "@/components/states";
-import { isNoMapping, useMapping } from "@/features/data-sources/api/get-mapping";
+import { useMapping } from "@/features/data-sources/api/get-mapping";
 import type { AdapterSectionProps } from "@/features/data-sources/components/adapter-screen";
 import { MappingEditor } from "@/features/data-sources/components/mapping-editor";
 import { MappingSummary } from "@/features/data-sources/components/mapping-summary";
@@ -26,8 +26,8 @@ function Mapping({ adapterId }: { adapterId: string }) {
   const canSet = useCan(ConnectorService.method.setMapping);
   const canPreview = useCan(ConnectorService.method.previewMapping);
   const [savedVersion, setSavedVersion] = useState<number | null>(null);
-  const noMapping = isNoMapping(mapping.error);
   const current = mapping.data?.mapping;
+  const noMapping = !!mapping.data && !current;
 
   return (
     <Section
@@ -40,7 +40,8 @@ function Mapping({ adapterId }: { adapterId: string }) {
     >
       {mapping.isPending ? (
         <Loading what="the Mapping" />
-      ) : mapping.error && !noMapping ? (
+      ) : !mapping.data ? (
+        // A failed refetch keeps the loaded data, and with it the editor.
         <ErrorState error={mapping.error} />
       ) : (
         <>
