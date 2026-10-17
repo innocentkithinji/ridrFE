@@ -259,3 +259,80 @@ test("creating a Rule clears the new Rule's draft and leaves without asking", as
   await expect(page.getByLabel("Name")).toHaveValue("");
   await expect(restoredNotice(page)).toHaveCount(0);
 });
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+function silenceForm(page: Page) {
+  return page.getByRole("dialog", { name: "Create Silence" });
+}
+
+test("a Silence being written asks before it is left, and reopens with its draft after a reload", async ({ page }) => {
+  const comment = `e2e draft silence ${unique()}`;
+  await page.goto("/rules");
+  await leaveVia(page, "Silences");
+  await page.getByRole("button", { name: "Create Silence" }).click();
+  await silenceForm(page).getByLabel("Comment").fill(comment);
+
+  // The panel covers the page, so the way out is the browser's Back.
+  await page.goBack();
+  await discardDialog(page).getByRole("button", { name: "Keep editing" }).click();
+  await expect(page).toHaveURL(/\/silences$/);
+  await expect(silenceForm(page).getByLabel("Comment")).toHaveValue(comment);
+
+  expect(await reloadAccepting(page)).toBe(true);
+  await expect(silenceForm(page)).toBeVisible();
+  await expect(restoredNotice(page)).toBeVisible();
+  await expect(silenceForm(page).getByLabel("Comment")).toHaveValue(comment);
+
+  await restoredNotice(page).getByRole("button", { name: "Discard" }).click();
+  await expect(silenceForm(page).getByLabel("Comment")).toHaveValue("");
+  expect(await reloadAccepting(page)).toBe(false);
+  await expect(silenceForm(page)).toBeHidden();
+});
+
+test("closing a dirty Silence form asks first", async ({ page }) => {
+  await page.goto("/silences");
+  await page.getByRole("button", { name: "Create Silence" }).click();
+  await silenceForm(page).getByLabel("Comment").fill("half written");
+
+  await page.keyboard.press("Escape");
+  await discardDialog(page).getByRole("button", { name: "Keep editing" }).click();
+  await expect(silenceForm(page).getByLabel("Comment")).toHaveValue("half written");
+
+  await page.keyboard.press("Escape");
+  await discardDialog(page).getByRole("button", { name: "Discard" }).click();
+  await expect(silenceForm(page)).toBeHidden();
+  await page.getByRole("button", { name: "Create Silence" }).click();
+  await expect(silenceForm(page).getByLabel("Comment")).toHaveValue("");
+});
+
+test("creating a Silence clears its draft", async ({ page, request }) => {
+  const comment = `e2e draft silence ${unique()}`;
+  const ends = new Date(Date.now() + 3_600_000);
+  await page.goto("/silences");
+  await page.getByRole("button", { name: "Create Silence" }).click();
+  const form = silenceForm(page);
+  // A key no Asset holds, so the Silence holds back nothing real.
+  await form.getByRole("button", { name: "Add Attribute" }).click();
+  await form.getByRole("combobox", { name: "Key 1" }).fill("e2e_drafts");
+  await form.getByRole("textbox", { name: "Value 1" }).fill(unique());
+  await form
+    .getByLabel("Ends")
+    .fill(`${ends.getFullYear()}-${pad(ends.getMonth() + 1)}-${pad(ends.getDate())}T${pad(ends.getHours())}:${pad(ends.getMinutes())}`);
+  await form.getByLabel("Comment").fill(comment);
+  await form.getByRole("button", { name: "Create" }).click();
+  await expect(form).toBeHidden();
+  const { silences = [] } = await call<{ silences?: { id: string; comment: string }[] }>(
+    request,
+    "SilenceService/ListSilences",
+    {},
+  );
+  for (const silence of silences.filter((s) => s.comment === comment)) {
+    cleanups.push(() => call(request, "SilenceService/EndSilence", { silenceId: silence.id }));
+  }
+
+  expect(await reloadAccepting(page)).toBe(false);
+  await page.getByRole("button", { name: "Create Silence" }).click();
+  await expect(silenceForm(page).getByLabel("Comment")).toHaveValue("");
+  await expect(restoredNotice(page)).toHaveCount(0);
+});
