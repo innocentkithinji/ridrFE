@@ -14,6 +14,14 @@ _Avoid_: Panel, card, tile, chart
 How a Widget draws its Query's answer. One of: *line* (Measurements over time), *stat* (one latest or aggregate value), *table*, *map* (Locations) or *events* (a list of Events).
 _Avoid_: Chart type, view, display
 
+**Query builder**:
+Where a Query is put together by picking options (source, Metric, conditions, range, summarising, Unit) instead of writing text. It always shows the Query text it writes, and "Edit as text" switches to the Query editor.
+_Avoid_: Query wizard, visual editor, form mode
+
+**Template**:
+A starting point for a new Widget ("Live map of a fleet", "One Metric over time", "Latest value", "Recent events"): a title, a Visualization and a Query that open in the Query builder, ready to change.
+_Avoid_: Preset, example, blueprint
+
 ### Maps
 
 **Track**:

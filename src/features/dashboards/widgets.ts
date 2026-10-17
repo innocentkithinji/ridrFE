@@ -13,6 +13,55 @@ export const visualizations = [
 
 export type Visualization = (typeof visualizations)[number]["id"];
 
+// sourceOf is what a Visualization draws: Locations on a map, Events in a
+// list, Measurements otherwise. The query builder reads only that source.
+export function sourceOf(visualization: Visualization): "measurements" | "locations" | "events" {
+  if (visualization === "map") return "locations";
+  if (visualization === "events") return "events";
+  return "measurements";
+}
+
+// Starting points for a new Widget: each opens the query builder filled in.
+export const templates = [
+  {
+    id: "fleet-map",
+    label: "Live map of a fleet",
+    says: "Where each Device is now, and where it went in the last 2 minutes.",
+    fields: { title: "Fleet map", visualization: "map", text: "locations\n| range last 2m" },
+  },
+  {
+    id: "metric-over-time",
+    label: "One Metric over time",
+    says: "A Metric's average every 5 minutes, one line per Device.",
+    fields: {
+      title: "Temperature over time",
+      visualization: "line",
+      text: "measurements\n| where metric == temperature\n| range last 6h\n| rollup avg every 5m by device",
+    },
+  },
+  {
+    id: "latest-value",
+    label: "Latest value",
+    says: "The last value of a Metric in the past hour, per Device.",
+    fields: {
+      title: "Latest temperature",
+      visualization: "stat",
+      text: "measurements\n| where metric == temperature\n| range last 1h\n| rollup last every all by device",
+    },
+  },
+  {
+    id: "recent-events",
+    label: "Recent events",
+    says: "Every Event of the last 24 hours, newest first.",
+    fields: { title: "Recent events", visualization: "events", text: "events\n| range last 24h" },
+  },
+] as const satisfies readonly {
+  id: string;
+  label: string;
+  says: string;
+  fields: { title: string; visualization: Visualization; text: string };
+}[];
+
 // visualizationOf reads a saved Widget's visualization; one this app
 // doesn't know (saved by another client) draws as a table.
 export function visualizationOf(saved: string): Visualization {

@@ -25,8 +25,11 @@ async function createDashboard(page: Page, name: string) {
 async function addWidget(page: Page, title: string, visualization: string, text: string) {
   await page.getByRole("button", { name: "Add a widget" }).click();
   const dialog = page.getByRole("dialog", { name: "Add a widget" });
+  await dialog.getByRole("button", { name: "Blank widget" }).click();
   await dialog.getByRole("textbox", { name: "Title" }).fill(title);
   await dialog.getByRole("combobox", { name: "Visualization" }).selectOption(visualization);
+  // These tests write the Query as text; the query builder has its own tests.
+  await dialog.getByRole("button", { name: "Edit as text" }).click();
   await dialog.getByRole("textbox", { name: "Query" }).fill(text);
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(dialog).toBeHidden();

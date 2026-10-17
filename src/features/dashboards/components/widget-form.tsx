@@ -1,12 +1,12 @@
 import { CatalogService, RegistryService, type QueryProblem } from "@ridr/web";
 import { useId, useState, type FormEvent } from "react";
-import { QueryEditor } from "@/components/query-editor/query-editor";
+import { QueryBuilder } from "@/components/query-builder/query-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useMetrics } from "@/lib/api/catalog";
 import { useAssets, vocabularyStaleTime } from "@/lib/api/registry";
-import { visualizations, type Visualization } from "@/features/dashboards/widgets";
+import { sourceOf, templates, visualizations, type Visualization } from "@/features/dashboards/widgets";
 import { useCan } from "@/lib/me";
 
 // What the form edits of a Widget; the grid places it.
@@ -29,27 +29,58 @@ const blank: WidgetFields = {
 };
 
 // WidgetFormDialog adds a Widget, or changes one's title, Visualization
-// and Query. The change lands in the Dashboard being edited; nothing is
-// saved until the Dashboard is.
+// and Query. Adding starts from a template, or blank. The change lands in
+// the Dashboard being edited; nothing is saved until the Dashboard is.
 export function WidgetFormDialog({ editing, open, onOpenChange, problem, onDone }: WidgetFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit widget" : "Add a widget"}</DialogTitle>
         </DialogHeader>
         {/* Mounted only while open, so each opening starts afresh. */}
-        {open && (
-          <WidgetForm
-            start={editing ?? blank}
-            adding={!editing}
-            problem={problem}
-            onCancel={() => onOpenChange(false)}
-            onDone={onDone}
-          />
-        )}
+        {open &&
+          (editing ? (
+            <WidgetForm start={editing} adding={false} problem={problem} onCancel={() => onOpenChange(false)} onDone={onDone} />
+          ) : (
+            <NewWidget onCancel={() => onOpenChange(false)} onDone={onDone} />
+          ))}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// NewWidget offers the templates first; picking one (or a blank Widget)
+// opens the form filled in from it.
+function NewWidget({ onCancel, onDone }: { onCancel: () => void; onDone: (fields: WidgetFields) => void }) {
+  const [start, setStart] = useState<WidgetFields | null>(null);
+  if (start) return <WidgetForm start={start} adding onCancel={onCancel} onDone={onDone} />;
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-muted-foreground text-sm">Start from one of these, then change anything.</p>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {templates.map((template) => (
+          <li key={template.id}>
+            <button
+              type="button"
+              onClick={() => setStart({ ...template.fields })}
+              className="hover:bg-muted/60 focus-visible:ring-ring/50 flex h-full w-full flex-col gap-1 rounded-lg border p-3 text-left outline-none focus-visible:ring-3"
+            >
+              <span className="text-sm font-medium">{template.label}</span>
+              <span className="text-muted-foreground text-xs">{template.says}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setStart(blank)}>
+          Blank widget
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }
 
@@ -114,11 +145,12 @@ function WidgetForm({ start, adding, problem, onCancel, onDone }: WidgetFormProp
           </span>
         </label>
       </div>
-      <div className="space-y-1 text-sm font-medium">
-        <span>Query</span>
-        <QueryEditor
+      <div className="space-y-2 text-sm">
+        <span className="font-medium">Query</span>
+        <QueryBuilder
           value={fields.text}
           onChange={(text) => setFields((current) => ({ ...current, text }))}
+          sources={[sourceOf(fields.visualization)]}
           onSubmit={() => submit()}
           problem={shownProblem}
           vocabulary={{
@@ -127,11 +159,11 @@ function WidgetForm({ start, adding, problem, onCancel, onDone }: WidgetFormProp
           }}
         />
         {textProblem && (
-          <p role="alert" className="text-destructive text-sm font-normal">
+          <p role="alert" className="text-destructive text-sm">
             {textProblem}
           </p>
         )}
-        <p className="text-muted-foreground text-xs font-normal">
+        <p className="text-muted-foreground text-xs">
           A range that ends now keeps the widget current: new Readings stream in, and a rollup reruns each bucket.
         </p>
       </div>
