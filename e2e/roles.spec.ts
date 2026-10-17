@@ -156,7 +156,9 @@ test.describe("a scoped user", () => {
     await expect(nav(page).getByRole("link", { name: "Assets" })).toBeVisible();
     await expect(nav(page).getByRole("link", { name: "Unclaimed devices" })).toHaveCount(0);
     await page.goto("/devices/unclaimed");
-    await expect(page.getByText("there are no Unclaimed devices to show")).toBeVisible();
+    const denied = page.getByRole("alert");
+    await expect(denied).toContainText("No access");
+    await expect(denied).toContainText("Your Scope doesn't let you see Unclaimed devices");
   });
 
   test("saving an Asset outside their Scope shows the server's message", async ({ page }) => {
