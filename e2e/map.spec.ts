@@ -1,11 +1,55 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { adminToken, api } from "./users";
 
-// The map of Locations in Explore, against the demo data: the Fintraffic
-// bridge keeps "Ship Megastar" (MMSI 276829000) reporting its position as
-// it sails between Helsinki (60° N) and Tallinn (59° N).
+// The map of Locations in Explore. Each test drives its own vehicle, so
+// positions arrive on cue rather than whenever a demo ship reports.
 
-const megastarQuery = 'locations | where asset == "Ship Megastar" | range last 1h';
-const megastarDevice = "276829000";
+async function call<T>(request: APIRequestContext, method: string, data: object, token = adminToken): Promise<T> {
+  const response = await request.post(`${api}/ridr.v1.${method}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data,
+  });
+  expect(response.ok(), `${method}: ${await response.text()}`).toBe(true);
+  return (await response.json()) as T;
+}
+
+// vehicle makes an Asset whose one Device (from a new Adapter) has
+// reported a position in Helsinki, and returns the Query for its
+// Locations, its Device ID, and moveTo to report another position.
+async function vehicle(request: APIRequestContext) {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const deviceId = `e2e-van-${stamp}`;
+  const { adapter, ingestKey } = await call<{ adapter: { id: string }; ingestKey: { plaintext: string } }>(
+    request,
+    "AdapterService/RegisterAdapter",
+    { name: `e2e-map-${stamp}` },
+  );
+  const moveTo = (latitude: number, longitude: number) =>
+    call(
+      request,
+      "IngestService/Ingest",
+      { locations: [{ deviceId, deviceTime: new Date().toISOString(), latitude, longitude }] },
+      ingestKey.plaintext,
+    );
+  const { asset } = await call<{ asset: { id: string; name: string } }>(request, "RegistryService/CreateAsset", {
+    name: `Map van ${stamp}`,
+  });
+  // Ridr registers the Device as it stores its first Reading.
+  await moveTo(60.1699, 24.9384);
+  await expect
+    .poll(async () => (await call<{ health: string }>(request, "RegistryService/GetDeviceHealth", { deviceId })).health)
+    .not.toBe("DEVICE_HEALTH_NEVER_SEEN");
+  await call(request, "RegistryService/AssignDevice", { deviceId, assetId: asset.id });
+  // Readings count for the Asset only from the Assignment on, so report
+  // the position again.
+  await moveTo(60.1699, 24.9384);
+  return {
+    deviceId,
+    query: `locations | where asset == "${asset.name}" | range last 1h`,
+    moveTo,
+    retire: () => call(request, "AdapterService/RetireAdapter", { adapterId: adapter.id }),
+  };
+}
 
 function map(page: Page) {
   return page.getByRole("figure", { name: "Query answer map" });
@@ -30,43 +74,57 @@ async function brightness(page: Page): Promise<number> {
   }, png);
 }
 
-test("a locations Query draws a demo vehicle on the map", async ({ page }) => {
-  await page.goto(`/explore?q=${encodeURIComponent(megastarQuery)}`);
+test("a locations Query draws a vehicle on the map", async ({ page, request }) => {
+  const van = await vehicle(request);
+  try {
+    await page.goto(`/explore?q=${encodeURIComponent(van.query)}`);
 
-  await expect(page.getByRole("tab", { name: "Map", selected: true })).toBeVisible();
-  await expect(page.getByText("so keep the range short")).toBeVisible();
-  await expect(map(page).locator("canvas")).toBeVisible();
-  await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
+    await expect(page.getByRole("tab", { name: "Map", selected: true })).toBeVisible();
+    await expect(page.getByText("so keep the range short")).toBeVisible();
+    await expect(map(page).locator("canvas")).toBeVisible();
+    await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
 
-  await map(page).getByText("Show as list").click();
-  const latest = map(page).getByRole("list", { name: "Latest positions" });
-  await expect(latest.getByRole("listitem").filter({ hasText: megastarDevice })).toContainText(/\d+\.\d+° N, \d+\.\d+° E/);
+    await map(page).getByText("Show as list").click();
+    const latest = map(page).getByRole("list", { name: "Latest positions" });
+    await expect(latest.getByRole("listitem").filter({ hasText: van.deviceId })).toContainText("60.1699° N, 24.9384° E");
+  } finally {
+    await van.retire();
+  }
 });
 
-test("live Locations move the vehicle without redrawing the map", async ({ page }) => {
-  await page.goto(`/explore?q=${encodeURIComponent(megastarQuery)}`);
-  await expect(page.getByRole("status").filter({ hasText: /^Live$/ })).toBeVisible();
-  await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
-  // Mark the map's canvas: a map rebuilt for new data would lose the mark.
-  await map(page).locator("canvas").evaluate((canvas) => canvas.setAttribute("data-first", ""));
+test("live Locations move the vehicle without redrawing the map", async ({ page, request }) => {
+  const van = await vehicle(request);
+  try {
+    await page.goto(`/explore?q=${encodeURIComponent(van.query)}`);
+    await expect(page.getByRole("status").filter({ hasText: /^Live$/ })).toBeVisible();
+    await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
+    // Mark the map's canvas: a map rebuilt for new data would lose the mark.
+    await map(page).locator("canvas").evaluate((canvas) => canvas.setAttribute("data-first", ""));
 
-  await map(page).getByText("Show as list").click();
-  const megastar = map(page).getByRole("list", { name: "Latest positions" }).getByRole("listitem").filter({ hasText: megastarDevice });
-  const time = megastar.locator("time");
-  const before = await time.getAttribute("datetime");
+    await map(page).getByText("Show as list").click();
+    const position = map(page)
+      .getByRole("list", { name: "Latest positions" })
+      .getByRole("listitem")
+      .filter({ hasText: van.deviceId });
+    await expect(position).toContainText("60.1699° N, 24.9384° E");
 
-  await expect.poll(() => time.getAttribute("datetime"), { timeout: 60_000 }).not.toBe(before);
-  await expect(map(page).locator("canvas[data-first]")).toHaveCount(1);
+    await van.moveTo(60.171, 24.9412);
+    await expect(position).toContainText("60.1710° N, 24.9412° E", { timeout: 15_000 });
+    await expect(map(page).locator("canvas[data-first]")).toHaveCount(1);
+  } finally {
+    await van.retire();
+  }
 });
 
-test("the map follows the light and dark theme", async ({ page }) => {
+test("the map follows the light and dark theme", async ({ page, request }) => {
+  const van = await vehicle(request);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto(`/explore?q=${encodeURIComponent(megastarQuery)}`);
+  await page.goto(`/explore?q=${encodeURIComponent(van.query)}`);
   await expect(map(page)).toHaveAttribute("aria-busy", "false", { timeout: 20_000 });
   expect(await brightness(page)).toBeLessThan(100);
 
@@ -75,4 +133,5 @@ test("the map follows the light and dark theme", async ({ page }) => {
 
   await expect.poll(() => brightness(page), { timeout: 20_000 }).toBeGreaterThan(150);
   expect(errors).toEqual([]);
+  await van.retire();
 });
