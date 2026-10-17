@@ -5,7 +5,12 @@ import { defineConfig, devices } from "@playwright/test";
 // pick its own port with PORT. E2E_SERVER=worker serves the production
 // build in ./dist through `wrangler dev` instead of the Vite dev server,
 // as Cloudflare will serve it (run `npm run build` first).
-const port = Number(process.env.PORT) || 5173;
+//
+// Tests never draw on Google Maps, so they spend none of its allowance:
+// the server they start blanks the Google settings (which beat
+// .env.local), and runs on its own port so it never reuses a dev server
+// started with them.
+const port = Number(process.env.PORT) || 5180;
 const baseURL = `http://localhost:${port}`;
 const worker = process.env.E2E_SERVER === "worker";
 
@@ -25,6 +30,6 @@ export default defineConfig({
       : `npm run dev -- --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    env: { PORT: String(port) },
+    env: { PORT: String(port), VITE_GOOGLE_MAPS_API_KEY: "", VITE_GOOGLE_MAP_ID: "" },
   },
 });

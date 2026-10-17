@@ -103,9 +103,8 @@ export default function MapCanvas(props: MapCanvasProps) {
   }, [layers, show, stale, theme, animated]);
 
   // Vehicles are deck.gl layers on a canvas over the map's, added only
-  // to a map that has them. Not drawn into the map's own canvas, as on
-  // the Google map: deck.gl's interleaved mode reads MapLibre internals
-  // that MapLibre 6 removed.
+  // to a map that has them. Not drawn into the map's own canvas: deck.gl's
+  // interleaved mode reads MapLibre internals that MapLibre 6 removed.
   useEffect(() => {
     if (!layers || !animated) return;
     const deck = new MapboxOverlay({ interleaved: false, layers: [] });

@@ -9,5 +9,5 @@ This supersedes the keyless-only map chosen in the spec (#1). It was chosen for 
 ## Considered Options
 
 - **Google Maps only**: rejected; every test run would spend map loads, and the app wouldn't work without a key.
-- **Google's raster map with JSON styles**: rejected; it can't tilt into 3D, and deck.gl's interleaved layers need a vector map.
+- **Google's raster map with JSON styles**: rejected; it can't tilt into 3D.
 - **Google's own markers and polylines instead of deck.gl**: rejected; one DOM element per vehicle won't animate a fleet of a thousand (#35), and deck.gl draws the same layers on the MapLibre fallback.

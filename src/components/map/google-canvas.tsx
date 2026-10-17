@@ -68,6 +68,8 @@ async function takeMap(theme: Theme): Promise<Pooled & { reused: boolean }> {
     disableDefaultUI: true,
     zoomControl: true,
     clickableIcons: false,
+    // Scrolling zooms, as on the keyless map, rather than asking for Ctrl.
+    gestureHandling: "greedy",
   });
   return { map, element, theme, reused: false };
 }
@@ -126,7 +128,10 @@ export default function GoogleCanvas(props: MapCanvasProps) {
         taken = pooled;
         const { map } = pooled;
         element.append(pooled.element);
-        overlay = new GoogleMapsOverlay({ interleaved: true, layers: [] });
+        // Drawn on deck.gl's own canvas over the map, which follows it as it
+        // tilts and turns; drawn into Google's canvas (interleaved) nothing
+        // showed.
+        overlay = new GoogleMapsOverlay({ interleaved: false, layers: [] });
         overlay.setMap(map);
 
         // Fitting zooms the map, which must not tilt it on the way.

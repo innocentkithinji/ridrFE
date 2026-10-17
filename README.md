@@ -63,7 +63,8 @@ dev token.
 | `npm run test:e2e:worker` | builds for the local stack, then checks deep links on the build served by `wrangler dev`, as Cloudflare serves it |
 
 Run `npx playwright install chromium` once. Tests start their own dev
-server on `PORT` (default 5173) or reuse one already there. They cover
+server on `PORT` (default 5180) or reuse one already there, with the
+Google Maps settings blanked so test runs never spend map loads. They cover
 the dev-token Session only; Clerk sign-in is checked by hand (below).
 Global setup has the dev admin make the stack's extra dev users
 members (a viewer, an editor, and an editor scoped to `fleet=hsl`;
