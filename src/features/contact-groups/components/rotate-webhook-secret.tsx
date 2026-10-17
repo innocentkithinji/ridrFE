@@ -4,7 +4,7 @@ import { AlertDialog } from "radix-ui";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRotateWebhookSecret } from "@/features/contact-groups/api/change-contact-group";
-import { SecretsDialog, type IssuedSecret } from "@/features/contact-groups/components/secrets-dialog";
+import { WebhookSecretDialog, type IssuedSecret } from "@/features/contact-groups/components/webhook-secret-dialog";
 import { messageFor } from "@/lib/errors";
 
 // RotateWebhookSecret replaces a webhook URL's signing secret after
@@ -66,7 +66,7 @@ export function RotateWebhookSecret({ address }: { address: string }) {
           </AlertDialog.Content>
         </AlertDialog.Portal>
       </AlertDialog.Root>
-      <SecretsDialog secrets={secrets} onClose={() => setSecrets([])} />
+      <WebhookSecretDialog secrets={secrets} onDone={() => setSecrets([])} />
     </>
   );
 }
