@@ -1,7 +1,10 @@
+import { lazy } from "react";
 import { PreferenceService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
-import { PreferencesScreen } from "@/features/preferences/components/preferences-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const PreferencesScreen = lazy(() => import("@/features/preferences/components/preferences-screen").then((m) => ({ default: m.PreferencesScreen })));
 
 export const preferencesPath = "/settings/preferences";
 

@@ -19,6 +19,11 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: { include: ["maplibre-gl"] },
     server: { port: Number(process.env.PORT) || 5173, strictPort: true },
     build: {
+      // Screens load per route (src/app/routes), so the first download is
+      // small. MapLibre can't be split further: its chunk (about 1 MB) and
+      // its worker (about 0.5 MB) load only when a map shows. The limit
+      // sits just above MapLibre, so a chunk bigger than it still warns.
+      chunkSizeWarningLimit: 1100,
       // Libraries change less often than the app, so browsers keep them
       // cached across releases.
       rolldownOptions: {

@@ -1,7 +1,10 @@
+import { lazy } from "react";
 import { QueryService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
-import { ExploreScreen } from "@/features/explore/components/explore-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const ExploreScreen = lazy(() => import("@/features/explore/components/explore-screen").then((m) => ({ default: m.ExploreScreen })));
 
 export const explorePath = "/explore";
 

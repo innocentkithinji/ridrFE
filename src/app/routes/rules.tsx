@@ -1,10 +1,13 @@
+import { lazy } from "react";
 import { RuleService } from "@ridr/web";
 import { useParams } from "react-router";
 import { RequirePermission } from "@/components/require-permission";
-import { NewRuleScreen } from "@/features/rules/components/new-rule-screen";
-import { RuleDetailScreen } from "@/features/rules/components/rule-detail-screen";
-import { RulesScreen } from "@/features/rules/components/rules-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const NewRuleScreen = lazy(() => import("@/features/rules/components/new-rule-screen").then((m) => ({ default: m.NewRuleScreen })));
+const RuleDetailScreen = lazy(() => import("@/features/rules/components/rule-detail-screen").then((m) => ({ default: m.RuleDetailScreen })));
+const RulesScreen = lazy(() => import("@/features/rules/components/rules-screen").then((m) => ({ default: m.RulesScreen })));
 
 export const rulesPath = "/rules";
 

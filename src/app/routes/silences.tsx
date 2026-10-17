@@ -1,7 +1,10 @@
+import { lazy } from "react";
 import { SilenceService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
-import { SilencesScreen } from "@/features/silences/components/silences-screen";
 import { permissionOf } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const SilencesScreen = lazy(() => import("@/features/silences/components/silences-screen").then((m) => ({ default: m.SilencesScreen })));
 
 export const silencesPath = "/silences";
 

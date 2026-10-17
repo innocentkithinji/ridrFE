@@ -159,7 +159,7 @@ src/
     clerk-session.tsx   the Session from Clerk: sign-in, Organisation picker, switcher
     dev-session.tsx     the Session from the dev token
     me-provider.tsx     holds screens back until GetMe answers
-    routes/             one thin file per route: reads params, renders a feature
+    routes/             one thin file per route: reads params, renders a feature screen loaded lazily
   components/
     charts/             TimeSeriesChart and the series it draws; the palette
     map/                TrackMap: MapLibre and OpenFreeMap, loaded lazily; Tracks of Locations, an area

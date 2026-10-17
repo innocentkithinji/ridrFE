@@ -1,8 +1,11 @@
+import { lazy } from "react";
 import { RegistryService } from "@ridr/web";
 import { RequirePermission } from "@/components/require-permission";
 import { PermissionDenied } from "@/components/states";
-import { UnclaimedDevicesScreen } from "@/features/assets/components/unclaimed-devices-screen";
 import { permissionOf, useIsScoped } from "@/lib/me";
+
+// Screens load on first visit, keeping them out of the first download.
+const UnclaimedDevicesScreen = lazy(() => import("@/features/assets/components/unclaimed-devices-screen").then((m) => ({ default: m.UnclaimedDevicesScreen })));
 
 export const unclaimedDevicesPath = "/devices/unclaimed";
 
