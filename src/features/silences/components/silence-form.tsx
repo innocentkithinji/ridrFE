@@ -5,6 +5,7 @@ import { AttributeEditor } from "@/components/attribute-editor";
 import { Loading } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DiscardChangesDialog, LeaveGuard, RestoredDraftNotice } from "@/components/unsaved-draft";
 import {
   Sheet,
   SheetContent,
@@ -27,27 +28,77 @@ import {
   type AttributeRow,
 } from "@/lib/attributes";
 import { useMe } from "@/lib/me";
+import { useUnsavedDraft, type UnsavedDraft } from "@/lib/unsaved-draft";
 
 const commentLimit = 500;
 
 type SilenceFormSheetProps = { open: boolean; onOpenChange: (open: boolean) => void };
 
-// SilenceFormSheet creates a Silence in a panel over the list.
+// SilenceDraft is a Silence as the form holds it; times as typed.
+type SilenceDraft = { rows: AttributeRow[]; startsAt: string; endsAt: string; comment: string };
+
+// Where the unsaved Silence is kept. SilencesScreen opens the form at
+// once when one waits there.
+export const silenceDraftKey = "silence:new";
+
+// storedSilenceDraft reads a draft back, with fresh row IDs so they never
+// clash with rows made since.
+function storedSilenceDraft(stored: unknown): SilenceDraft | null {
+  const draft = stored as SilenceDraft | null;
+  if (!draft || !Array.isArray(draft.rows)) return null;
+  return {
+    rows: draft.rows.map(({ key, value }) => ({ ...newAttributeRow(), key, value })),
+    startsAt: String(draft.startsAt ?? ""),
+    endsAt: String(draft.endsAt ?? ""),
+    comment: String(draft.comment ?? ""),
+  };
+}
+
+// SilenceFormSheet creates a Silence in a panel over the list. Unsaved
+// work is kept as a draft; closing the panel or leaving the page with
+// some asks first.
 export function SilenceFormSheet({ open, onOpenChange }: SilenceFormSheetProps) {
+  const scopeRows = useScopeRows();
+  const unsaved = useUnsavedDraft<SilenceDraft>({
+    key: silenceDraftKey,
+    initial: () => ({ rows: scopeRows, startsAt: "", endsAt: "", comment: "" }),
+    fromStored: storedSilenceDraft,
+  });
+  const [askingToClose, setAskingToClose] = useState(false);
+  const close = () => {
+    unsaved.discard();
+    onOpenChange(false);
+  };
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>Create Silence</SheetTitle>
-          <SheetDescription>
-            Hold back notifications for the Assets holding every pair below. Rules keep
-            recording Alerts; one still firing when the Silence ends is notified then.
-          </SheetDescription>
-        </SheetHeader>
-        {/* Mounted only while open, so each opening starts afresh. */}
-        {open && <SilenceForm onDone={() => onOpenChange(false)} />}
-      </SheetContent>
-    </Sheet>
+    <>
+      <Sheet
+        open={open}
+        onOpenChange={(next) => {
+          if (next || !unsaved.dirty) onOpenChange(next);
+          else setAskingToClose(true);
+        }}
+      >
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Create Silence</SheetTitle>
+            <SheetDescription>
+              Hold back notifications for the Assets holding every pair below. Rules keep
+              recording Alerts; one still firing when the Silence ends is notified then.
+            </SheetDescription>
+          </SheetHeader>
+          {open && <SilenceForm unsaved={unsaved} onDone={close} />}
+        </SheetContent>
+      </Sheet>
+      <LeaveGuard draft={unsaved} />
+      <DiscardChangesDialog
+        open={askingToClose}
+        onStay={() => setAskingToClose(false)}
+        onDiscard={() => {
+          setAskingToClose(false);
+          close();
+        }}
+      />
+    </>
   );
 }
 
@@ -62,14 +113,21 @@ function useScopeRows(): AttributeRow[] {
   }));
 }
 
-function SilenceForm({ onDone }: { onDone: () => void }) {
+type SilenceFormProps = {
+  unsaved: UnsavedDraft<SilenceDraft>;
+  // After a create, or a close: the draft is cleared.
+  onDone: () => void;
+};
+
+function SilenceForm({ unsaved, onDone }: SilenceFormProps) {
   const controlledKeys = useControlledKeys();
   const create = useCreateSilence();
-  const scopeRows = useScopeRows();
-  const [rows, setRows] = useState<AttributeRow[]>(scopeRows);
-  const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
-  const [comment, setComment] = useState("");
+  const { rows, startsAt, endsAt, comment } = unsaved.draft;
+  const change = (patch: Partial<SilenceDraft>) => unsaved.setDraft((d) => ({ ...d, ...patch }));
+  const setRows = (next: AttributeRow[]) => change({ rows: next });
+  const setStartsAt = (next: string) => change({ startsAt: next });
+  const setEndsAt = (next: string) => change({ endsAt: next });
+  const setComment = (next: string) => change({ comment: next });
   const [submitted, setSubmitted] = useState(false);
   const endsProblemId = useId();
   const commentCountId = useId();
@@ -101,6 +159,7 @@ function SilenceForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-1 flex-col gap-4 px-4">
+      <RestoredDraftNotice draft={unsaved} />
       <FromAsset onPick={(asset) => setRows(attributeRowsOf(asset.attributes))} />
       <AttributeEditor
         legend="Selector"

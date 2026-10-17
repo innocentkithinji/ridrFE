@@ -1,4 +1,4 @@
-import { Code, ConnectError } from "@connectrpc/connect";
+import { ConnectError } from "@connectrpc/connect";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { RegistryService, type Device } from "@ridr/web";
 import { useState } from "react";
@@ -107,11 +107,8 @@ function LatestReading({ deviceId }: { deviceId: string }) {
     return <span className="text-muted-foreground">Loading latest Reading…</span>;
   }
   if (latest.error) {
-    const error = ConnectError.from(latest.error);
     return (
-      <span className="text-muted-foreground">
-        {error.code === Code.NotFound ? "No Measurements yet." : messageFor(error)}
-      </span>
+      <span className="text-muted-foreground">{messageFor(ConnectError.from(latest.error))}</span>
     );
   }
   const reading = latest.data.reading;

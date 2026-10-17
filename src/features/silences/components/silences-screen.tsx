@@ -3,16 +3,18 @@ import { useState } from "react";
 import { QueryView } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { useSilences } from "@/features/silences/api/get-silences";
-import { SilenceFormSheet } from "@/features/silences/components/silence-form";
+import { SilenceFormSheet, silenceDraftKey } from "@/features/silences/components/silence-form";
 import { SilencesList } from "@/features/silences/components/silences-list";
 import { Can, useIsScoped } from "@/lib/me";
+import { hasStoredDraft } from "@/lib/unsaved-draft";
 
 // SilencesScreen is /silences: pending and active Silences, expired ones
 // on demand, and the form to create one.
 export function SilencesScreen() {
   const [includeExpired, setIncludeExpired] = useState(false);
   const silences = useSilences(includeExpired);
-  const [creating, setCreating] = useState(false);
+  // A Silence left unsaved reopens at once, restoring its draft.
+  const [creating, setCreating] = useState(() => hasStoredDraft(silenceDraftKey));
 
   return (
     <section className="space-y-4">

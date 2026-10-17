@@ -1,16 +1,10 @@
-import { Code, ConnectError } from "@connectrpc/connect";
-import { useQuery } from "@connectrpc/connect-query";
 import { ConnectorService } from "@ridr/web";
+import { useQueryWhereNotFoundIsEmpty } from "@/lib/api/expected-not-found";
 
 // useMapping is a Connector's current Mapping version. Cached by method
-// key and request. A Connector without one fails with NotFound: see
-// isNoMapping.
+// key and request. A Connector without one answers NotFound, held as data
+// with no `mapping` ("no Mapping yet"), so a background refetch never
+// swaps the editor for Loading.
 export function useMapping(adapterId: string) {
-  return useQuery(ConnectorService.method.getMapping, { adapterId });
-}
-
-// isNoMapping tells whether GetMapping failed because the Connector has
-// no Mapping yet, which is a state, not an error.
-export function isNoMapping(error: unknown): boolean {
-  return !!error && ConnectError.from(error).code === Code.NotFound;
+  return useQueryWhereNotFoundIsEmpty(ConnectorService.method.getMapping, { adapterId });
 }
