@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { signInAs } from "./users";
 
 const api = process.env.VITE_RIDR_API_URL || "http://localhost:18095";
 const token = process.env.VITE_RIDR_DEV_TOKEN || "dev-user-token";
@@ -13,8 +14,9 @@ async function call(request: APIRequestContext, procedure: string, body: object 
 }
 
 // withMe edits the dev user's real GetMe answer, standing in for a user
-// with fewer Permissions or a Scope.
-async function withMe(page: Page, edit: (me: { permissions: string[]; scope?: unknown }) => void) {
+// with fewer Permissions. A Scope comes from the real scoped user
+// (e2e/users.ts).
+async function withMe(page: Page, edit: (me: { permissions: string[] }) => void) {
   await page.route("**/ridr.v1.AccessService/GetMe", async (route) => {
     const response = await route.fetch();
     const me = await response.json();
@@ -140,9 +142,7 @@ test("without ListMqttBridges Home shows no data credit", async ({ page }) => {
 });
 
 test("a scoped user sees a Scope note on each panel and no Unclaimed devices", async ({ page }) => {
-  await withMe(page, (me) => {
-    me.scope = { conditions: [{ key: "colour", values: ["blue"] }] };
-  });
+  await signInAs(page, "scoped");
   await page.goto("/");
   for (const panel of panels) {
     await expect(page.getByRole("region", { name: panel })).toBeVisible();
