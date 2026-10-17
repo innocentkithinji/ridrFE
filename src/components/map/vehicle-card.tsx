@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 // reads the Playback a few times a second rather than on every frame.
 // Key it by the vehicle's id, so selecting another starts afresh.
 
-export const modeNames: Record<Mode, string> = {
+// What the card calls each Mode.
+const modeNames: Record<Mode, string> = {
   rail: "Train",
   tram: "Tram",
   subway: "Metro",
@@ -17,7 +18,8 @@ export const modeNames: Record<Mode, string> = {
   ferry: "Ferry",
 };
 
-export const motionWords: Record<Motion, string> = {
+// How the card says each Motion, as on a departures board.
+const motionWords: Record<Motion, string> = {
   "en-route": "EN ROUTE",
   stopped: "STOPPED",
   "no-fix": "NO FIX",

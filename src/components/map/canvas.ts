@@ -1,4 +1,3 @@
-import type { Layer } from "@deck.gl/core";
 import { palette } from "@/components/charts/palette";
 import type { Playback } from "@/components/map/playback";
 import type { TrackLook, TrackShow } from "@/components/map/track-layers";
@@ -9,12 +8,15 @@ import type { GeoPolygon, Track } from "@/components/map/tracks";
 // chunk; TrackMap picks one by configuration and nothing else knows
 // which map draws.
 
+// Theme is which of the app's themes a map draws in.
+export type Theme = "light" | "dark";
+
 export type MapCanvasProps = {
   tracks: readonly Track[];
   show: TrackShow;
   stale: boolean;
   area: GeoPolygon | null;
-  theme: "light" | "dark";
+  theme: Theme;
   height: number;
   // Set when the user may change the area: its corners drag, and while
   // drawing each click on the map adds one. Each change is sent here.
@@ -37,7 +39,8 @@ export type MapVehicles = {
   onSelect: (id: string | null) => void;
 };
 
-export const looks: Record<"light" | "dark", TrackLook> = {
+// The colours each theme draws Tracks, areas and labels in.
+export const looks: Record<Theme, TrackLook> = {
   light: { colors: palette.light, fleet: palette.light[0], area: palette.light[1], text: "#1f1f1d", halo: "#ffffff" },
   dark: { colors: palette.dark, fleet: palette.dark[0], area: palette.dark[1], text: "#e8e7e1", halo: "#0c0c0c" },
 };
@@ -55,22 +58,8 @@ export function trackColor(look: TrackLook, index: number, count: number): strin
   return count <= look.colors.length ? look.colors[index] : look.fleet;
 }
 
-// runVehicles draws vehicles on every animation frame, handing draw the
-// layers for each, until the returned function stops it. The browser
-// pauses animation frames in a hidden tab, so a hidden map costs nothing.
-export function runVehicles(
-  get: () => { vehicles?: MapVehicles; theme: "light" | "dark" },
-  zoom: () => number,
-  draw: (layers: Layer[]) => void,
-  layersFor: (vehicles: MapVehicles, frame: number, theme: "light" | "dark", zoom: number) => Layer[],
-): () => void {
-  let frame = 0;
-  let request = 0;
-  const step = () => {
-    const now = get();
-    if (now.vehicles) draw(layersFor(now.vehicles, frame++, now.theme, zoom()));
-    request = requestAnimationFrame(step);
-  };
-  request = requestAnimationFrame(step);
-  return () => cancelAnimationFrame(request);
+// rgb is a "#rrggbb" colour as the [red, green, blue] deck.gl draws with.
+export function rgb(hex: string): [number, number, number] {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }

@@ -3,10 +3,10 @@ import { LngLatBounds, Map as MapLibre, Marker, NavigationControl, setWorkerUrl 
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
-import { fitMaxZoom, fitPadding, looks, runVehicles, start, type MapCanvasProps } from "@/components/map/canvas";
+import { fitMaxZoom, fitPadding, looks, start, type MapCanvasProps, type Theme } from "@/components/map/canvas";
 import { TrackLayers } from "@/components/map/track-layers";
 import { wrapLongitude, type GeoPolygon } from "@/components/map/tracks";
-import { layersForVehicles, vehicleLayerId } from "@/components/map/vehicle-layers";
+import { pickVehicle, runVehicles } from "@/components/map/vehicle-layers";
 
 // MapCanvas is TrackMap's keyless base map, MapLibre with OpenFreeMap
 // tiles, used when the app isn't configured for Google Maps. It is in
@@ -25,12 +25,9 @@ const styles = {
 export default function MapCanvas(props: MapCanvasProps) {
   const { tracks, show, stale, area, theme, height, onReady, onArea, drawing, vehicles } = props;
   const target = useRef<HTMLDivElement>(null);
-  const [layers, setLayers] = useState<{
-    map: MapLibre;
-    layers: TrackLayers;
-    overlay: MapboxOverlay;
-    theme: "light" | "dark";
-  } | null>(null);
+  const [layers, setLayers] = useState<{ map: MapLibre; layers: TrackLayers; theme: Theme } | null>(null);
+  // The canvas vehicles are drawn on, while the map has any.
+  const overlay = useRef<MapboxOverlay | null>(null);
   // What to draw when a style finishes loading, which happens outside React.
   const current = useRef({ tracks, show, stale, area, theme, onReady, onArea, drawing, vehicles });
   useEffect(() => {
@@ -51,11 +48,6 @@ export default function MapCanvas(props: MapCanvasProps) {
     });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     const trackLayers = new TrackLayers(map);
-    // Vehicles are deck.gl layers on a canvas over the map's. Not drawn
-    // into the map's own canvas, as on the Google map: deck.gl's
-    // interleaved mode reads MapLibre internals that MapLibre 6 removed.
-    const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
-    map.addControl(overlay);
     let firstLoad = true;
     map.on("style.load", () => {
       const now = current.current;
@@ -70,15 +62,14 @@ export default function MapCanvas(props: MapCanvasProps) {
         map.fitBounds(bounds, { padding: fitPadding, maxZoom: fitMaxZoom, duration: 0 });
       }
       firstLoad = false;
-      setLayers({ map, layers: trackLayers, overlay, theme: now.theme });
+      setLayers({ map, layers: trackLayers, theme: now.theme });
     });
     map.on("click", (event) => {
       const now = current.current;
       if (now.drawing && now.onArea) {
         now.onArea([...(now.area ?? []), [wrapLongitude(event.lngLat.lng), event.lngLat.lat]]);
-      } else if (now.vehicles) {
-        const picked = overlay.pickObject({ x: event.point.x, y: event.point.y, radius: 8, layerIds: [vehicleLayerId] });
-        now.vehicles.onSelect((picked?.object as { id: string } | undefined)?.id ?? null);
+      } else if (now.vehicles && overlay.current) {
+        now.vehicles.onSelect(pickVehicle(overlay.current, event.point.x, event.point.y));
       }
     });
     // Drawn once the style and its tiles are in. Not "idle": a map with
@@ -111,17 +102,24 @@ export default function MapCanvas(props: MapCanvasProps) {
     if (layers?.theme === theme) layers.layers.show(show, stale, animated);
   }, [layers, show, stale, theme, animated]);
 
+  // Vehicles are deck.gl layers on a canvas over the map's, added only
+  // to a map that has them. Not drawn into the map's own canvas, as on
+  // the Google map: deck.gl's interleaved mode reads MapLibre internals
+  // that MapLibre 6 removed.
   useEffect(() => {
     if (!layers || !animated) return;
+    const deck = new MapboxOverlay({ interleaved: false, layers: [] });
+    layers.map.addControl(deck);
+    overlay.current = deck;
     const stop = runVehicles(
       () => current.current,
       () => layers.map.getZoom(),
-      (drawn) => layers.overlay.setProps({ layers: drawn }),
-      layersForVehicles,
+      (drawn) => deck.setProps({ layers: drawn }),
     );
     return () => {
       stop();
-      layers.overlay.setProps({ layers: [] });
+      overlay.current = null;
+      layers.map.removeControl(deck);
     };
   }, [layers, animated]);
 

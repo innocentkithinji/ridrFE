@@ -1,14 +1,23 @@
 /// <reference types="google.maps" />
 import type { Layer } from "@deck.gl/core";
 import { GoogleMapsOverlay } from "@deck.gl/google-maps";
-import { PathLayer, PolygonLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
+import { PathLayer, PolygonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useRef, useState } from "react";
-import { fitMaxZoom, fitPadding, looks, runVehicles, start, trackColor, type MapCanvasProps } from "@/components/map/canvas";
+import {
+  fitMaxZoom,
+  fitPadding,
+  looks,
+  rgb,
+  start,
+  trackColor,
+  type MapCanvasProps,
+  type Theme,
+} from "@/components/map/canvas";
 import { googleMaps } from "@/components/map/google-config";
-import type { TrackLook, TrackShow } from "@/components/map/track-layers";
+import type { TrackShow } from "@/components/map/track-layers";
 import { latestOf, wrapLongitude, type GeoPoint, type GeoPolygon, type Track } from "@/components/map/tracks";
-import { labelMinZoom, layersForVehicles, rgb, vehicleLayerId } from "@/components/map/vehicle-layers";
+import { labelLayer, labelMinZoom, pickVehicle, runVehicles } from "@/components/map/vehicle-layers";
 
 // GoogleCanvas is TrackMap's base map when the app is configured for
 // Google Maps (ADR 0003): a vector map, in its own chunk with the deck.gl
@@ -30,11 +39,11 @@ const tiltZoom = 17;
 const tiltDegrees = 60;
 
 // pool holds the maps no canvas shows now, at most poolSize of them.
-type Pooled = { map: google.maps.Map; element: HTMLDivElement; theme: "light" | "dark" };
+type Pooled = { map: google.maps.Map; element: HTMLDivElement; theme: Theme };
 const pool: Pooled[] = [];
 const poolSize = 4;
 
-async function takeMap(theme: "light" | "dark"): Promise<Pooled & { reused: boolean }> {
+async function takeMap(theme: Theme): Promise<Pooled & { reused: boolean }> {
   const [{ ColorScheme }, { Map, RenderingType }] = await libraries;
   const index = pool.findIndex((pooled) => pooled.theme === theme);
   if (index >= 0) {
@@ -75,7 +84,7 @@ const authFailures = new Set<() => void>();
   for (const failed of authFailures) failed();
 };
 
-type View = { map: google.maps.Map; overlay: GoogleMapsOverlay; theme: "light" | "dark" };
+type View = { map: google.maps.Map; overlay: GoogleMapsOverlay; theme: Theme };
 
 export default function GoogleCanvas(props: MapCanvasProps) {
   const { tracks, show, stale, area, theme, height, onArea, drawing, vehicles } = props;
@@ -142,13 +151,11 @@ export default function GoogleCanvas(props: MapCanvasProps) {
               now.onArea([...(now.area ?? []), [wrapLongitude(clicked.latLng.lng()), clicked.latLng.lat()]]);
             } else if (now.vehicles && clicked.domEvent instanceof MouseEvent) {
               const box = pooled.element.getBoundingClientRect();
-              const picked = overlay?.pickObject({
-                x: clicked.domEvent.clientX - box.left,
-                y: clicked.domEvent.clientY - box.top,
-                radius: 8,
-                layerIds: [vehicleLayerId],
-              });
-              now.vehicles.onSelect((picked?.object as { id: string } | undefined)?.id ?? null);
+              if (overlay) {
+                now.vehicles.onSelect(
+                  pickVehicle(overlay, clicked.domEvent.clientX - box.left, clicked.domEvent.clientY - box.top),
+                );
+              }
             }
           }),
         );
@@ -216,7 +223,7 @@ export default function GoogleCanvas(props: MapCanvasProps) {
   }, [view]);
   useEffect(() => {
     if (!view) return;
-    base.current = trackLayers(tracks, show, stale, dragged ?? area, looks[view.theme], animated, labelled);
+    base.current = trackDeckLayers(tracks, show, stale, dragged ?? area, view.theme, animated, labelled);
     view.overlay.setProps({ layers: base.current });
   }, [view, tracks, show, stale, area, dragged, animated, labelled]);
 
@@ -226,7 +233,6 @@ export default function GoogleCanvas(props: MapCanvasProps) {
       () => current.current,
       () => view.map.getZoom() ?? 0,
       (drawn) => view.overlay.setProps({ layers: [...base.current, ...drawn] }),
-      layersForVehicles,
     );
   }, [view, animated]);
 
@@ -298,20 +304,21 @@ function positionOf(marker: google.maps.marker.AdvancedMarkerElement): [longitud
 
 type Shown = { track: Track; now: GeoPoint; color: [number, number, number] };
 
-// trackLayers draws an area, then each Track's path, where it is now and
+// trackDeckLayers draws an area, then each Track's path, where it is now and
 // its label, as MapLibre's TrackLayers does. Labels show only when
 // `labelled` (zoomed in), so a whole fleet's don't pile up. With vehicles,
 // which a live map draws moving instead, the latest positions and labels
 // are left out.
-function trackLayers(
+function trackDeckLayers(
   tracks: readonly Track[],
   show: TrackShow,
   stale: boolean,
   area: GeoPolygon | null,
-  look: TrackLook,
+  theme: Theme,
   vehicles: boolean,
   labelled: boolean,
 ): Layer[] {
+  const look = looks[theme];
   const shown: Shown[] = tracks.flatMap((track, index) => {
     const now = latestOf(track);
     return now ? [{ track, now, color: rgb(trackColor(look, index, tracks.length)) }] : [];
@@ -355,21 +362,14 @@ function trackLayers(
       getLineWidth: 1.5,
       updateTriggers: { getFillColor: [stale] },
     }),
-    new TextLayer<Shown>({
+    labelLayer<Shown>({
       id: "ridr-latest-label",
       data: shown,
       visible: !vehicles && labelled,
       getPosition: where,
       getText: (d) => d.track.label,
-      characterSet: "auto",
-      fontFamily: "Geist Variable, system-ui, sans-serif",
-      getSize: 11,
-      getColor: rgb(look.text),
-      getPixelOffset: [0, 9],
-      getAlignmentBaseline: "top",
-      fontSettings: { sdf: true },
-      outlineWidth: 2,
-      outlineColor: [...halo, 255],
+      offset: 9,
+      theme,
     }),
   ];
 }

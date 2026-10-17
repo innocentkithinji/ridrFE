@@ -1,21 +1,22 @@
 import type { GeoPoint, Track } from "@/components/map/tracks";
 
 // Playback turns Tracks that grow as Locations arrive into vehicles that
-// move smoothly, after the transit layer in gods-eye-view: each vehicle
-// is shown a little in the past, so there is a reported Location either
+// move smoothly: each vehicle is shown a little in the past, so there is a reported Location either
 // side of the time shown and it can glide between two real reports
 // instead of guessing ahead. It knows nothing of maps; a map asks it
 // where every vehicle is on each frame it draws.
 
+// Mode is what kind of vehicle a Track is, from its `mode` Tag.
 export type Mode = "rail" | "tram" | "subway" | "bus" | "ferry";
 
 // Motion is what a vehicle is known to be doing:
-//   en-route  its two Locations either side of now are in different places
+//   en-route  its Locations either side of now, or its last two, differ
 //   stopped   two Locations in a row at one place
 //   no-fix    nothing reported for noFixAfterMs
-//   waiting   too little to tell yet, or past its newest Location
+//   waiting   too little to tell yet
 export type Motion = "en-route" | "stopped" | "no-fix" | "waiting";
 
+// Vehicle is where a vehicle is shown now, and what it is doing.
 export type Vehicle = {
   id: string;
   label: string;
@@ -41,7 +42,7 @@ const ceilings: Record<Mode | "unknown", number> = {
   unknown: 56, // ~200 km/h
 };
 
-export const noFixAfterMs = 90_000;
+const noFixAfterMs = 90_000;
 // A vehicle further behind than this jumps to its newest Location rather
 // than crawl through a backlog.
 const backlogMs = 90_000;
@@ -49,6 +50,9 @@ const minDelayMs = 2_000;
 const maxDelayMs = 120_000;
 // Under this many metres a step's direction is noise: the last is held.
 const headingMinTravelM = 12;
+// Locations this close count as one place: GPS wanders a little even
+// when a vehicle is still.
+const stillWithinM = 2;
 // How fast the drawn heading may turn, so vehicles sweep round curves.
 const turnDegreesPerSecond = 120;
 // The most time one look may turn for, so a long pause isn't banked
@@ -71,6 +75,9 @@ type Entry = {
   shownAt: number;
   heading: number | null;
   headingAt: number;
+  // The course into the Location last asked about, by its time, as
+  // finding it can look back through many Locations.
+  course?: { into: number; value: number | null };
   last?: Vehicle;
 };
 
@@ -147,9 +154,9 @@ export class Playback {
     return this.entries.get(id)?.last;
   }
 
-  // trail is where a vehicle has been, oldest first, up to where it is
-  // shown now.
-  trail(id: string): GeoPoint[] {
+  // travelled is the way a vehicle has come, oldest first, up to where
+  // it is shown now.
+  travelled(id: string): GeoPoint[] {
     const entry = this.entries.get(id);
     if (!entry?.last) return [];
     const passed = entry.fixes.filter((fix) => fix.time <= entry.shownAt);
@@ -164,7 +171,8 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
 
   // Shown time only moves forward, so a vehicle never steps back.
   const target = now - delayOf(entry);
-  if (!Number.isFinite(entry.shownAt) || target - entry.shownAt > backlogMs) entry.shownAt = target;
+  if (!Number.isFinite(entry.shownAt)) entry.shownAt = target;
+  else if (target - entry.shownAt > backlogMs) entry.shownAt = Math.max(target, newest.time);
   else entry.shownAt = Math.max(entry.shownAt, target);
   const shownAt = entry.shownAt;
 
@@ -186,8 +194,8 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
     if (to) {
       const metres = distanceM(from, to);
       const seconds = (to.time - from.time) / 1000;
-      motion = metres === 0 ? "stopped" : "en-route";
-      if (metres >= headingMinTravelM) course = courseBetween(from, to);
+      motion = metres <= stillWithinM ? "stopped" : "en-route";
+      course = courseInto(entry, index + 1);
       if (glide && plausible(entry.mode, metres, seconds)) {
         const fraction = (shownAt - from.time) / (to.time - from.time);
         place = {
@@ -195,8 +203,10 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
           longitude: from.longitude + (to.longitude - from.longitude) * fraction,
         };
       }
-    } else if (index > 0 && distanceM(fixes[index - 1], from) === 0) {
-      motion = "stopped";
+    } else if (index > 0) {
+      // Past its newest Location, waiting for the next: as its last step.
+      motion = distanceM(fixes[index - 1], from) <= stillWithinM ? "stopped" : "en-route";
+      course = courseInto(entry, index);
     }
   }
   if (now - newest.time > noFixAfterMs) motion = "no-fix";
@@ -215,6 +225,23 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
   };
   if (entry.last) Object.assign(entry.last, vehicle);
   else entry.last = vehicle;
+}
+
+function courseInto(entry: Entry, to: number): number | null {
+  const into = entry.fixes[to].time;
+  if (entry.course?.into !== into) entry.course = { into, value: courseTo(entry.fixes, to) };
+  return entry.course.value;
+}
+
+// courseTo is the direction a vehicle came into fixes[to] from: from the
+// latest earlier Location at least headingMinTravelM away, so a slow
+// vehicle's many short steps still add up to a heading. Null when it
+// hasn't come that far.
+function courseTo(fixes: readonly GeoPoint[], to: number): number | null {
+  for (let i = to - 1; i >= 0; i--) {
+    if (distanceM(fixes[i], fixes[to]) >= headingMinTravelM) return courseBetween(fixes[i], fixes[to]);
+  }
+  return null;
 }
 
 // delayOf is how far behind now a vehicle is shown: long enough that its
@@ -252,7 +279,7 @@ function plausible(mode: Mode | null, metres: number, seconds: number): boolean 
 }
 
 // modeOf reads a `mode` Tag, accepting the usual names for each mode.
-export function modeOf(tag: string | undefined): Mode | null {
+function modeOf(tag: string | undefined): Mode | null {
   switch (tag?.trim().toLowerCase()) {
     case "rail":
     case "train":

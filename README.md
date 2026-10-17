@@ -218,7 +218,7 @@ src/
   features/<feature>/
     api/                one hook per procedure: get-<things>.ts, <verb>-<thing>.ts
     components/         the feature's screens and parts
-  lib/                  Session, transport, query cache, useMe/useCan/permissionOf, errors, theme
+  lib/                  Session, transport, query cache, useMe/useCan/permissionOf, errors, theme, useReducedMotion
   lib/api/              hooks more than one feature uses, one file per Ridr service (registry.ts, catalog.ts…)
   config/env.ts         VITE_ settings
   config/sign-in.ts     why a production build may not go out (read by vite.config.ts)
