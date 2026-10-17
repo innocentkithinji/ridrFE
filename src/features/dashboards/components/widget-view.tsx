@@ -3,6 +3,7 @@ import type { Query, QueryProblem, RunQueryResponse } from "@ridr/web";
 import { LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnswerTable } from "@/components/answer-table";
+import { LiveSwitch } from "@/components/live-status";
 import { measurementSeries, rollupSeries } from "@/components/charts/time-series";
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
 import { TrackMap } from "@/components/map/track-map";
@@ -43,7 +44,12 @@ export function WidgetView({ widget, problem, onEdit, onRemove }: WidgetViewProp
   // the Query runs once, with the viewer's Unit.
   const known = !!understood || !canExplain || explain.isError;
   const text = units.ready && known ? viewerText(widget.text, understood, units.apply) : "";
-  const result = useWidgetResult(text, understood, { live: true });
+  // Each viewer may pause a Widget's live updates; it isn't saved.
+  const [liveWanted, setLiveWanted] = useState(true);
+  const result = useWidgetResult(text, understood, {
+    live: liveWanted,
+    alwaysStream: widget.visualization === "map",
+  });
   const editing = !!onEdit;
 
   return (
@@ -59,12 +65,7 @@ export function WidgetView({ widget, problem, onEdit, onRemove }: WidgetViewProp
         )}
       >
         <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{widget.title}</h2>
-        {result.status === "live" && (
-          <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-            <span aria-hidden className="size-1.5 rounded-full bg-emerald-600" />
-            Live
-          </span>
-        )}
+        {result.canBeLive && <LiveSwitch on={liveWanted} onChange={setLiveWanted} status={result.status} />}
         {editing && (
           <>
             <Button variant="ghost" size="icon-sm" aria-label={`Edit ${widget.title}`} onClick={onEdit}>

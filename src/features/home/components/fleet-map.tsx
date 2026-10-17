@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { TrackMap } from "@/components/map/track-map";
 import { locationTracks } from "@/components/map/tracks";
-import { LiveStatusBadge } from "@/components/live-status";
+import { LiveSwitch } from "@/components/live-status";
 import { ErrorState, PermissionDenied } from "@/components/states";
 import { useLiveQuery } from "@/lib/use-live-query";
 
@@ -10,17 +11,19 @@ import { useLiveQuery } from "@/lib/use-live-query";
 export const fleetQuery = "locations | range last 2m";
 
 // FleetMap shows where each Device is now, moving as Locations arrive.
-// While the Live query reopens it keeps the pins, marked stale.
+// While the Live query reopens it keeps the pins, marked stale. Paused,
+// it closes the Live query and holds still on the last positions.
 export function FleetMap() {
-  const live = useLiveQuery(fleetQuery);
+  const [liveWanted, setLiveWanted] = useState(true);
+  const live = useLiveQuery(fleetQuery, { enabled: liveWanted });
   const tracks = live.data ? locationTracks(live.data.readings) : [];
   return (
     <section aria-label="Fleet map" className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold">Fleet</h2>
-        <LiveStatusBadge status={live.status} />
+        <LiveSwitch on={liveWanted} onChange={setLiveWanted} status={live.status} />
       </div>
-      <FleetMapBody live={live} tracks={tracks} />
+      <FleetMapBody live={live} tracks={tracks} moving={liveWanted} />
     </section>
   );
 }
@@ -28,9 +31,10 @@ export function FleetMap() {
 type FleetMapBodyProps = {
   live: ReturnType<typeof useLiveQuery>;
   tracks: ReturnType<typeof locationTracks>;
+  moving: boolean;
 };
 
-function FleetMapBody({ live, tracks }: FleetMapBodyProps) {
+function FleetMapBody({ live, tracks, moving }: FleetMapBodyProps) {
   if (live.status === "denied") return <PermissionDenied what="the fleet's Locations" />;
   if (live.status === "failed") return <ErrorState error={live.error} />;
   const empty = live.data !== undefined && tracks.length === 0;
@@ -40,8 +44,8 @@ function FleetMapBody({ live, tracks }: FleetMapBodyProps) {
         tracks={tracks}
         label="Fleet now"
         show="latest"
-        stale={live.status === "reconnecting"}
-        live
+        stale={moving && live.status === "reconnecting"}
+        live={moving}
         height={420}
       />
       {empty && (
