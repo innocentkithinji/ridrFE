@@ -27,6 +27,11 @@ export type Vehicle = {
   // tell.
   heading: number | null;
   motion: Motion;
+  // How fast it is going, in m/s, from its Locations either side of now
+  // (or its last two); null when that isn't known.
+  speed: number | null;
+  // Its newest Location's Tags, such as its line and route.
+  tags: Record<string, string>;
   // When its newest Location was reported, in milliseconds since the epoch.
   reportedAt: number;
 };
@@ -67,6 +72,7 @@ type Entry = {
   id: string;
   label: string;
   mode: Mode | null;
+  tags: Record<string, string>;
   fixes: GeoPoint[];
   // How long Locations took to arrive after they were reported.
   lags: number[];
@@ -103,6 +109,7 @@ export class Playback {
           id: track.id,
           label: track.label,
           mode: null,
+          tags: {},
           fixes: [],
           lags: [],
           seeded: false,
@@ -115,6 +122,7 @@ export class Playback {
       }
       entry.label = track.label;
       entry.mode = modeOf(track.mode);
+      entry.tags = track.tags ?? {};
       const newest = entry.fixes.at(-1)?.time ?? -Infinity;
       for (const point of track.points) {
         if (point.time <= newest) continue;
@@ -187,6 +195,7 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
   let place: { latitude: number; longitude: number } = fixes[0];
   let motion: Motion = "waiting";
   let course: number | null = null;
+  let speed: number | null = null;
   if (index >= 0) {
     const from = fixes[index];
     const to = fixes[index + 1];
@@ -196,6 +205,7 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
       const seconds = (to.time - from.time) / 1000;
       motion = metres <= stillWithinM ? "stopped" : "en-route";
       course = courseInto(entry, index + 1);
+      if (seconds > 0 && plausible(entry.mode, metres, seconds)) speed = metres / seconds;
       if (glide && plausible(entry.mode, metres, seconds)) {
         const fraction = (shownAt - from.time) / (to.time - from.time);
         place = {
@@ -205,11 +215,19 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
       }
     } else if (index > 0) {
       // Past its newest Location, waiting for the next: as its last step.
-      motion = distanceM(fixes[index - 1], from) <= stillWithinM ? "stopped" : "en-route";
+      const before = fixes[index - 1];
+      const metres = distanceM(before, from);
+      const seconds = (from.time - before.time) / 1000;
+      motion = metres <= stillWithinM ? "stopped" : "en-route";
       course = courseInto(entry, index);
+      if (seconds > 0 && plausible(entry.mode, metres, seconds)) speed = metres / seconds;
     }
   }
-  if (now - newest.time > noFixAfterMs) motion = "no-fix";
+  if (now - newest.time > noFixAfterMs) {
+    motion = "no-fix";
+    speed = null;
+  }
+  if (motion === "stopped") speed = 0;
 
   entry.heading = turn(entry, course, now, glide);
   entry.headingAt = now;
@@ -221,6 +239,8 @@ function sampleEntry(entry: Entry, now: number, glide: boolean) {
     longitude: place.longitude,
     heading: entry.heading,
     motion,
+    speed,
+    tags: entry.tags,
     reportedAt: newest.time,
   };
   if (entry.last) Object.assign(entry.last, vehicle);

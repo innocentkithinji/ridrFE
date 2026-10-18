@@ -37,6 +37,12 @@ export type MapVehicles = {
   selected: string | null;
   // Called with the vehicle clicked on, or null for a click elsewhere.
   onSelect: (id: string | null) => void;
+  // Shown pinned above the selected vehicle, as it moves.
+  bubble: HTMLElement;
+  // Whether the map keeps the selected vehicle in its middle. Dragging
+  // the map stops it, through onFollowing(false).
+  following: boolean;
+  onFollowing: (following: boolean) => void;
 };
 
 // The colours each theme draws Tracks, areas and labels in.

@@ -110,13 +110,36 @@ export default function MapCanvas(props: MapCanvasProps) {
     const deck = new MapboxOverlay({ interleaved: false, layers: [] });
     layers.map.addControl(deck);
     overlay.current = deck;
-    const stop = runVehicles(
-      () => current.current,
-      () => layers.map.getZoom(),
-      (drawn) => deck.setProps({ layers: drawn }),
-    );
+    let pinned: Marker | null = null;
+    const stop = runVehicles(() => current.current, {
+      zoom: () => layers.map.getZoom(),
+      draw: (drawn) => deck.setProps({ layers: drawn }),
+      pin: (bubble, at) => {
+        if (!at) {
+          pinned?.remove();
+          pinned = null;
+          return;
+        }
+        // Above the vehicle's icon, clear of it.
+        // Over the vehicles' canvas, which deck.gl puts among the map's
+        // controls (z-index 2), after its markers.
+        bubble.style.zIndex = "3";
+        pinned ??= new Marker({ element: bubble, anchor: "bottom", offset: [0, -14] }).setLngLat([0, 0]).addTo(layers.map);
+        pinned.setLngLat([at.longitude, at.latitude]);
+      },
+      // Not mid-drag: moving the map would cut the drag short.
+      centre: (at, belowPx) => {
+        if (layers.map.dragPan.isActive()) return;
+        layers.map.easeTo({ center: [at.longitude, at.latitude], offset: [0, belowPx], duration: 0 });
+      },
+    });
+    // Dragging the map means looking elsewhere: stop following.
+    const looked = () => current.current.vehicles?.onFollowing(false);
+    layers.map.on("dragstart", looked);
     return () => {
       stop();
+      layers.map.off("dragstart", looked);
+      pinned?.remove();
       overlay.current = null;
       layers.map.removeControl(deck);
     };

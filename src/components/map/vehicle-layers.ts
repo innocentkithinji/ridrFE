@@ -177,22 +177,37 @@ export function pickVehicle(
   return picked?.object?.id ?? null;
 }
 
+// VehicleMap is what runVehicles needs of a map, whichever draws it.
+export type VehicleMap = {
+  zoom: () => number;
+  draw: (layers: Layer[]) => void;
+  // Pins the bubble above the selected vehicle, or takes it away when
+  // none is selected.
+  pin: (bubble: HTMLElement, at: { latitude: number; longitude: number } | undefined) => void;
+  // Moves the map, without animating, so that a place shows `belowPx`
+  // pixels below its middle.
+  centre: (at: { latitude: number; longitude: number }, belowPx: number) => void;
+};
+
+// A followed vehicle is kept this many pixels below the map's middle, so
+// the bubble above it fits on the map.
+const followBelowPx = 90;
+
 // runVehicles samples and draws a map's vehicles on every animation
-// frame, handing draw the layers for each, until the returned function
-// stops it. The browser pauses animation frames in a hidden tab, so a
-// hidden map costs nothing.
-export function runVehicles(
-  get: () => { vehicles?: MapVehicles; theme: Theme },
-  zoom: () => number,
-  draw: (layers: Layer[]) => void,
-): () => void {
+// frame, moving the selected one's bubble with it and, while following,
+// the map, until the returned function stops it. The browser pauses
+// animation frames in a hidden tab, so a hidden map costs nothing.
+export function runVehicles(get: () => { vehicles?: MapVehicles; theme: Theme }, map: VehicleMap): () => void {
   let frame = 0;
   let request = 0;
   const step = () => {
     const { vehicles, theme } = get();
     if (vehicles) {
-      const { playback, glide, selected } = vehicles;
-      draw(vehicleLayers(playback, playback.sample(Date.now(), glide), frame++, selected, theme, zoom()));
+      const { playback, glide, selected, bubble, following } = vehicles;
+      map.draw(vehicleLayers(playback, playback.sample(Date.now(), glide), frame++, selected, theme, map.zoom()));
+      const chosen = selected ? playback.current(selected) : undefined;
+      map.pin(bubble, chosen);
+      if (chosen && following) map.centre(chosen, followBelowPx);
     }
     request = requestAnimationFrame(step);
   };

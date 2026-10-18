@@ -86,7 +86,12 @@ const authFailures = new Set<() => void>();
   for (const failed of authFailures) failed();
 };
 
-type View = { map: google.maps.Map; overlay: GoogleMapsOverlay; theme: Theme };
+type View = {
+  map: google.maps.Map;
+  overlay: GoogleMapsOverlay;
+  theme: Theme;
+  Marker: typeof google.maps.marker.AdvancedMarkerElement;
+};
 
 export default function GoogleCanvas(props: MapCanvasProps) {
   const { tracks, show, stale, area, theme, height, onArea, drawing, vehicles } = props;
@@ -120,7 +125,7 @@ export default function GoogleCanvas(props: MapCanvasProps) {
     fitted.current = new Set();
 
     Promise.all([takeMap(theme), libraries])
-      .then(([pooled, [{ event }]]) => {
+      .then(([pooled, [{ event }, , { AdvancedMarkerElement }]]) => {
         if (cancelled) {
           releaseMap(pooled);
           return;
@@ -184,7 +189,7 @@ export default function GoogleCanvas(props: MapCanvasProps) {
         }
         // A reused map may already have its tiles, so it won't go idle.
         if (pooled.reused) requestAnimationFrame(() => current.current.onReady(true));
-        setView({ map, overlay, theme });
+        setView({ map, overlay, theme, Marker: AdvancedMarkerElement });
       })
       .catch(fail);
 
@@ -234,11 +239,36 @@ export default function GoogleCanvas(props: MapCanvasProps) {
 
   useEffect(() => {
     if (!view || !animated) return;
-    return runVehicles(
-      () => current.current,
-      () => view.map.getZoom() ?? 0,
-      (drawn) => view.overlay.setProps({ layers: [...base.current, ...drawn] }),
-    );
+    let pinned: google.maps.marker.AdvancedMarkerElement | null = null;
+    const stop = runVehicles(() => current.current, {
+      zoom: () => view.map.getZoom() ?? 0,
+      draw: (drawn) => view.overlay.setProps({ layers: [...base.current, ...drawn] }),
+      pin: (bubble, at) => {
+        if (!at) {
+          if (pinned) pinned.map = null;
+          pinned = null;
+          return;
+        }
+        // Above the vehicle's icon, clear of it; over other markers.
+        bubble.style.transform = "translateY(-14px)";
+        pinned ??= new view.Marker({ map: view.map, content: bubble, zIndex: 1000 });
+        pinned.position = { lat: at.latitude, lng: at.longitude };
+      },
+      centre: (at, belowPx) => {
+        // Google's zoom counts 256-pixel tiles.
+        const zoom = view.map.getZoom() ?? 0;
+        const metresPerPixel = (156_543.03 * Math.cos((at.latitude * Math.PI) / 180)) / 2 ** zoom;
+        const lat = at.latitude + (belowPx * metresPerPixel) / 111_320;
+        view.map.moveCamera({ center: { lat, lng: at.longitude } });
+      },
+    });
+    // Dragging the map means looking elsewhere: stop following.
+    const looked = view.map.addListener("dragstart", () => current.current.vehicles?.onFollowing(false));
+    return () => {
+      stop();
+      looked.remove();
+      if (pinned) pinned.map = null;
+    };
   }, [view, animated]);
 
   // While drawing, clicks add corners rather than zoom.

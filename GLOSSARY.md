@@ -29,7 +29,7 @@ Where one Device has been: its Locations in a Query's range, oldest first, the l
 _Avoid_: Trail, path, route (a Tag in the demo data)
 
 **Vehicle**:
-How a live map draws a Track: an icon moving smoothly between its reported Locations, shown a few seconds behind them so there is always a next one to move to, turned to its heading. Selecting one shows its card (Mode, Motion, last report, position) and the way it has come.
+How a live map draws a Track: an icon moving smoothly between its reported Locations, shown a few seconds behind them so there is always a next one to move to, turned to its heading. Selecting one pins a bubble above it (its name, Mode, Motion, speed, its Location's Tags such as line and route, last report, position), shows the way it has come, and has the map follow it until the map is dragged.
 _Avoid_: Marker, pin, sprite
 
 **Mode**:

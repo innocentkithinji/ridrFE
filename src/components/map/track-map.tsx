@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { googleMaps } from "@/components/map/google-config";
 import { Playback } from "@/components/map/playback";
 import type { TrackShow } from "@/components/map/track-layers";
@@ -9,7 +10,7 @@ import {
   type GeoPolygon,
   type Track,
 } from "@/components/map/tracks";
-import { VehicleCard } from "@/components/map/vehicle-card";
+import { VehicleBubble } from "@/components/map/vehicle-bubble";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useTheme } from "@/lib/theme";
@@ -27,8 +28,9 @@ import { useTheme } from "@/lib/theme";
 // A live map (`live`) draws each Track as a vehicle moving smoothly
 // between its reported Locations, a few seconds behind them so there is
 // always a next one to move to (Playback). Clicking a vehicle, or its
-// name in the list, selects it: its trail and a card about it show, until
-// Escape, Close or a click elsewhere on the map.
+// name in the list, selects it: the way it has come shows, with a bubble
+// about it pinned above it, and the map follows it until the map is
+// dragged. Escape, Close or a click elsewhere on the map lets it go.
 //
 // The base map is Google Maps when the app is configured for it, else
 // the keyless OpenFreeMap map (ADR 0003). Either loads in its own chunk
@@ -77,6 +79,20 @@ export function TrackMap({
   const { resolved: theme } = useTheme();
   const [playback] = useState(() => new Playback());
   const [selected, setSelected] = useState<string | null>(null);
+  const [following, setFollowing] = useState(true);
+  const select = (id: string | null) => {
+    setSelected(id);
+    if (id) setFollowing(true);
+  };
+  // The bubble's element, which the map pins above the selected vehicle.
+  // Clicks and drags in it are the bubble's, not the map's.
+  const [bubble] = useState(() => {
+    const element = document.createElement("div");
+    for (const type of ["click", "dblclick", "mousedown", "pointerdown", "touchstart"]) {
+      element.addEventListener(type, (event) => event.stopPropagation());
+    }
+    return element;
+  });
   const reducedMotion = useReducedMotion();
   useEffect(() => {
     if (live) playback.ingest(tracks);
@@ -110,11 +126,32 @@ export function TrackMap({
             onArea={onChange}
             drawing={drawing}
             vehicles={
-              live ? { playback, glide: !reducedMotion, selected: chosen, onSelect: setSelected } : undefined
+              live
+                ? {
+                    playback,
+                    glide: !reducedMotion,
+                    selected: chosen,
+                    onSelect: select,
+                    bubble,
+                    following,
+                    onFollowing: setFollowing,
+                  }
+                : undefined
             }
           />
         </Suspense>
-        {chosen && <VehicleCard key={chosen} playback={playback} id={chosen} onClose={() => setSelected(null)} />}
+        {chosen &&
+          createPortal(
+            <VehicleBubble
+              key={chosen}
+              playback={playback}
+              id={chosen}
+              following={following}
+              onFollowing={setFollowing}
+              onClose={() => select(null)}
+            />,
+            bubble,
+          )}
         <p className="sr-only" aria-live="polite">
           {chosen ? `${tracks.find((track) => track.id === chosen)?.label} selected` : ""}
         </p>
@@ -134,7 +171,7 @@ export function TrackMap({
       )}
       <details className="text-sm" onToggle={(event) => setListed(event.currentTarget.open)}>
         <summary className="text-muted-foreground cursor-pointer">Show as list</summary>
-        {listed && <LatestList tracks={tracks} onSelect={live ? setSelected : undefined} selected={chosen} />}
+        {listed && <LatestList tracks={tracks} onSelect={live ? select : undefined} selected={chosen} />}
       </details>
     </figure>
   );

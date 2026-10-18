@@ -3,8 +3,8 @@ import { adminToken, api } from "./users";
 
 // Live maps draw each Track as a vehicle moving between its reported
 // Locations. Each test drives its own vehicle, reporting on cue, and
-// reads where the vehicle is shown from its card (the map itself is a
-// canvas).
+// reads where the vehicle is shown from the bubble pinned above it when
+// selected (the map itself is a canvas).
 
 async function call<T>(request: APIRequestContext, method: string, data: object, token = adminToken): Promise<T> {
   const response = await request.post(`${api}/ridr.v1.${method}`, {
@@ -19,8 +19,14 @@ type Report = { latitude: number; longitude: number; at?: Date; mode?: string };
 
 // vehicle makes a Device (from a new Adapter) that has reported once, at
 // `since` (now unless given), and returns the live Query for its
-// Locations and report to send another.
-async function vehicle(request: APIRequestContext, mode?: string, since = new Date()) {
+// Locations and report to send another. Its Locations carry `tags`, and
+// a `mode` Tag when given one.
+async function vehicle(
+  request: APIRequestContext,
+  mode?: string,
+  since = new Date(),
+  tags: Record<string, string> = {},
+) {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const deviceId = `e2e-tram-${stamp}`;
   const { adapter, ingestKey } = await call<{ adapter: { id: string }; ingestKey: { plaintext: string } }>(
@@ -34,7 +40,7 @@ async function vehicle(request: APIRequestContext, mode?: string, since = new Da
       "IngestService/Ingest",
       {
         locations: [
-          { deviceId, deviceTime: at.toISOString(), latitude, longitude, tags: mode ? { mode } : {} },
+          { deviceId, deviceTime: at.toISOString(), latitude, longitude, tags: mode ? { ...tags, mode } : tags },
         ],
       },
       ingestKey.plaintext,
@@ -50,6 +56,13 @@ async function vehicle(request: APIRequestContext, mode?: string, since = new Da
 
 function map(page: Page) {
   return page.getByRole("figure", { name: "Query answer map" });
+}
+
+// fact is what the bubble says for one of its terms, such as "Motion".
+function fact(page: Page, term: string) {
+  return card(page)
+    .locator("dt", { hasText: new RegExp(`^${term}$`) })
+    .locator("xpath=following-sibling::dd[1]");
 }
 
 function card(page: Page) {
@@ -69,7 +82,7 @@ async function open(page: Page, van: { query: string; deviceId: string }) {
 
 // shownLatitude is the latitude the card says the vehicle is at.
 async function shownLatitude(page: Page): Promise<number> {
-  const text = (await card(page).getByRole("definition").nth(3).textContent()) ?? "";
+  const text = (await fact(page, "Position").textContent()) ?? "";
   return Number(text.match(/^([\d.]+)° N/)?.[1]);
 }
 
@@ -142,7 +155,7 @@ test("the card says whether a vehicle is en route, stopped or silent", async ({ 
   try {
     await open(page, van);
     await expect(card(page)).toContainText("Train");
-    const motion = card(page).getByRole("definition").nth(1);
+    const motion = fact(page, "Motion");
 
     await van.report({ latitude: 60.171, longitude: 24.94 });
     await expect(motion).toHaveText("EN ROUTE", { timeout: 15_000 });
@@ -161,7 +174,7 @@ test("a vehicle that last reported over 90 seconds ago has no fix", async ({ pag
   const quiet = await vehicle(request, undefined, new Date(Date.now() - 120_000));
   try {
     await open(page, quiet);
-    await expect(card(page).getByRole("definition").nth(1)).toHaveText("NO FIX");
+    await expect(fact(page, "Motion")).toHaveText("NO FIX");
   } finally {
     await quiet.retire();
   }
@@ -200,7 +213,7 @@ test("under reduced motion a vehicle steps from report to report", async ({ page
         await van.report({ latitude, longitude: 24.94 });
       }
     })();
-    const seen = await sampleWhile(page, reporting, 5_000);
+    const seen = await sampleWhile(page, reporting, 8_000);
 
     const between = seen.filter((latitude) => !reported.some((r) => Math.abs(r - latitude) < 0.00005));
     expect(between, `shown: ${seen.join(", ")}`).toEqual([]);
@@ -220,6 +233,59 @@ test("historical maps draw Tracks, not vehicles", async ({ page, request }) => {
     const list = map(page).getByRole("list", { name: "Latest positions" });
     await expect(list.getByText(van.deviceId)).toBeVisible();
     await expect(list.getByRole("button")).toHaveCount(0);
+  } finally {
+    await van.retire();
+  }
+});
+
+test("the bubble on a selected vehicle gives its name, speed and Tags", async ({ page, request }) => {
+  const train = await vehicle(request, "rail", new Date(), { Line: "I", Route: "3002I" });
+  try {
+    await open(page, train);
+    await expect(card(page).getByRole("heading", { name: train.deviceId })).toBeVisible();
+    await expect(fact(page, "Mode")).toHaveText("Train");
+    await expect(fact(page, "Line")).toHaveText("I");
+    await expect(fact(page, "Route")).toHaveText("3002I");
+    // About 33 m a second: some 120 km/h.
+    for (let step = 1; step <= 4; step++) {
+      await page.waitForTimeout(1_000);
+      await train.report({ latitude: 60.17 + step * 0.0003, longitude: 24.94 });
+    }
+    await expect(fact(page, "Speed")).toHaveText(/^\d{2,3} km\/h$/, { timeout: 15_000 });
+  } finally {
+    await train.retire();
+  }
+});
+
+test("the map follows the selected vehicle until it is dragged", async ({ page, request }) => {
+  const van = await vehicle(request);
+  try {
+    await open(page, van);
+    const follow = card(page).getByRole("button", { name: "Follow" });
+    await expect(follow).toHaveAttribute("aria-pressed", "true");
+
+    // 30 km north, well out of the view fitted to where it was.
+    await page.waitForTimeout(1_000);
+    await van.report({ latitude: 60.44, longitude: 24.94 });
+    await expect(fact(page, "Position")).toContainText("60.4400° N", { timeout: 15_000 });
+    const inView = async () => {
+      const shown = await map(page).locator("canvas").first().boundingBox();
+      const bubble = await card(page).boundingBox();
+      if (!shown || !bubble) return false;
+      const middle = bubble.x + bubble.width / 2;
+      return middle > shown.x && middle < shown.x + shown.width && bubble.y + bubble.height > shown.y;
+    };
+    await expect.poll(inView).toBe(true);
+
+    const shown = (await map(page).locator("canvas").first().boundingBox())!;
+    // Drag the map down and right, from a corner clear of the bubble.
+    await page.mouse.move(shown.x + 60, shown.y + 40);
+    await page.mouse.down();
+    await page.mouse.move(shown.x + 260, shown.y + 100, { steps: 8 });
+    await page.mouse.up();
+    await expect(follow).toHaveAttribute("aria-pressed", "false");
+    await follow.click();
+    await expect(follow).toHaveAttribute("aria-pressed", "true");
   } finally {
     await van.retire();
   }
